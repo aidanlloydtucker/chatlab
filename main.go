@@ -7,6 +7,9 @@ import (
 )
 
 func main() {
+	temp:=make(chan string)
+	printAll(temp)
+	temp<-"lol"
 	listen()
 }
 
@@ -31,4 +34,13 @@ func listen() {
 		}
 		go handleConn(conn)
 	}
+}
+
+func printAll(stringChan <-chan string) {
+	go func(){
+		for{
+			str:=<-stringChan
+			fmt.Printf(str)
+		}
+	}()
 }
