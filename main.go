@@ -28,20 +28,20 @@ func handleConn(conn net.Conn) {
 	fmt.Println("CONNECTION BABE")
 	status, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
-	fmt.Printf(status)
+	fmt.Println(status)
 }
 
 func listen() {
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			fmt.Println(err)
+			panic(err)
 		}
 		go handleConn(conn)
 	}
@@ -52,8 +52,7 @@ func printAll(stringChanChan <-chan chan string) {
 		for {
 			strChan := <-stringChanChan
 			str := <-strChan
-			fmt.Printf(str)
+			fmt.Println(str)
 		}
 	}()
-
 }
