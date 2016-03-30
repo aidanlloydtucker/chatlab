@@ -4,33 +4,33 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-    //"golang.org/x/crypto/openpgp"
+	//"golang.org/x/crypto/openpgp"
 )
 
 func main() {
-	outputChannel:=make(chan chan string)
+	outputChannel := make(chan chan string, 5)
 	printAll(outputChannel)
-	onMessageReceived(outputChannel,"lol")
+	onMessageReceived(outputChannel, "lol")
 	listen()
 }
-func onMessageReceived(outputChannel chan chan string, message string){
-	messageChannel:=make(chan string)
-	outputChannel<-messageChannel
-	go func(){
-		messageChannel<-processMessage(message)
-		}()
+func onMessageReceived(outputChannel chan chan string, message string) {
+	messageChannel := make(chan string)
+	outputChannel <- messageChannel
+	go func() {
+		messageChannel <- processMessage(message)
+	}()
 }
-func processMessage(message string) string{
-	return "Processed Message: "+message
+func processMessage(message string) string {
+	return "Processed Message: " + message
 }
 
 func handleConn(conn net.Conn) {
-    fmt.Println("CONNECTION BABE")
-    status, err := bufio.NewReader(conn).ReadString('\n')
-    if err != nil {
-        fmt.Println(err)
-    }
-    fmt.Printf(status)
+	fmt.Println("CONNECTION BABE")
+	status, err := bufio.NewReader(conn).ReadString('\n')
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Printf(status)
 }
 
 func listen() {
@@ -48,10 +48,10 @@ func listen() {
 }
 
 func printAll(stringChanChan <-chan chan string) {
-	go func(){
-		for{
-			strChan:=<-stringChanChan
-			str:=<-strChan
+	go func() {
+		for {
+			strChan := <-stringChanChan
+			str := <-strChan
 			fmt.Printf(str)
 		}
 	}()
