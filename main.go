@@ -10,6 +10,15 @@ func main() {
 	listen()
 }
 
+func handleConn(conn net.Conn) {
+    fmt.Println("CONNECTION BABE")
+    status, err := bufio.NewReader(conn).ReadString('\n')
+    if err != nil {
+        fmt.Println(err)
+    }
+    fmt.Printf(status)
+}
+
 func listen() {
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -20,13 +29,6 @@ func listen() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		go func() {
-			fmt.Println("CONNECTION BABE")
-			status, err := bufio.NewReader(conn).ReadString('\n')
-            if err != nil {
-    			fmt.Println(err)
-    		}
-			fmt.Printf(status)
-		}()
+		go handleConn(conn)
 	}
 }
