@@ -10,15 +10,18 @@ import (
 func main() {
 	outputChannel:=make(chan chan string)
 	printAll(outputChannel)
-	printMessage(outputChannel,"lol")
+	onMessageReceived(outputChannel,"lol")
 	listen()
 }
-func printMessage(outputChannel chan chan string,message string){
+func onMessageReceived(outputChannel chan chan string, message string){
 	messageChannel:=make(chan string)
 	outputChannel<-messageChannel
 	go func(){
-		messageChannel<-"Processed message: "+message
+		messageChannel<-processMessage(message)
 		}()
+}
+func processMessage(message string) string{
+	return "Processed Message: "+message
 }
 
 func handleConn(conn net.Conn) {
