@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+    "golang.org/x/crypto/openpgp"
 )
 
 func main() {
