@@ -8,10 +8,17 @@ import (
 )
 
 func main() {
-	temp:=make(chan string)
-	printAll(temp)
-	temp<-"lol"
+	outputChannel:=make(chan chan string)
+	printAll(outputChannel)
+	printMessage(outputChannel,"lol")
 	listen()
+}
+func printMessage(outputChannel chan chan string,message string){
+	messageChannel:=make(chan string)
+	outputChannel<-messageChannel
+	go func(){
+		messageChannel<-"Processed message: "+message
+		}()
 }
 
 func handleConn(conn net.Conn) {
@@ -37,11 +44,13 @@ func listen() {
 	}
 }
 
-func printAll(stringChan <-chan string) {
+func printAll(stringChanChan <-chan chan string) {
 	go func(){
 		for{
-			str:=<-stringChan
+			strChan:=<-stringChanChan
+			str:=<-strChan
 			fmt.Printf(str)
 		}
 	}()
+
 }
