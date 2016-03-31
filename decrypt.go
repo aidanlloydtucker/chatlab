@@ -28,12 +28,12 @@ func decrypt(base64msg string) (string, error) {
 		passphrase = strings.TrimSpace(string(pass))
 	}
 
-	message, err := base64.StdEncoding.DecodeString(base64msg)
+	messageByteArr, err := base64.StdEncoding.DecodeString(base64msg)
 	if err != nil {
 		return "", err
 	}
 
-	buf := bytes.NewBuffer([]byte(message))
+	buf := bytes.NewBuffer(messageByteArr)
 
 	/*result, err := armor.Decode(buf)
 	if err != nil {
@@ -47,7 +47,7 @@ func decrypt(base64msg string) (string, error) {
 		}
 		defer keyringFileBuffer.Close()
 
-		privateKeyEntityList, err = openpgp.ReadKeyRing(keyringFileBuffer)
+		privateKeyEntityList, err = openpgp.ReadArmoredKeyRing(keyringFileBuffer)
 		if err != nil {
 			return "", err
 		}
