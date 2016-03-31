@@ -10,6 +10,7 @@ import (
 
 var outputChannel = make(chan chan string, 5)
 var peers []Peer
+var myname string = "leijurv"
 type Peer struct {
 	conn net.Conn
 	username string
@@ -35,7 +36,8 @@ func processMessage(message string, messageChannel chan string, peerFrom Peer) {
 }
 
 func handleConn(conn net.Conn, peerChannel chan Peer) {
-	fmt.Println("CONNECTION BABE")
+	fmt.Println("CONNECTION BABE. Sending our name")
+	conn.Write([]byte(myname+"\n"));
 	username, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return
