@@ -16,13 +16,9 @@ type Peer struct {
 }
 func main() {
 	go printAll(outputChannel)
-	onMessageReceived(outputChannel, "msg1")
-	onMessageReceived(outputChannel, "msg2")
-	onMessageReceived(outputChannel, "msg3")
-	onMessageReceived(outputChannel, "msg4")
 	listen()
 }
-func onMessageReceived(outputChannel chan chan string, message string) {
+func onMessageReceived(message string, peerFrom Peer) {
 	messageChannel := make(chan string, 100)
 	outputChannel <- messageChannel
 	go func(){
@@ -60,7 +56,7 @@ func peerListen(peer Peer){
 			return
 		}
 		message=strings.TrimSpace(message)
-		fmt.Println("Message from "+username+": "+message)
+		onMessageReceived(message,peer)
 	}
 }
 
