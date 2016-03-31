@@ -2,7 +2,6 @@
 *.o
 *.a
 *.so
-*.key
 
 # Folders
 _obj
@@ -23,4 +22,8 @@ _testmain.go
 *.exe
 *.test
 *.prof
+
+# Custom
 push.sh
+*.key
+config.json
