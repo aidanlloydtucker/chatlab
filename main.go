@@ -23,10 +23,11 @@ func onMessageReceived(message string, peerFrom Peer) {
 	outputChannel <- messageChannel
 	go func(){
 		defer close(messageChannel)
-	 	processMessage(message,messageChannel)
+	 	processMessage(message,messageChannel,peerFrom)
 	}()
 }
-func processMessage(message string, messageChannel chan string) {
+func processMessage(message string, messageChannel chan string, peerFrom Peer) {
+	messageChannel<-"Hey, a message from "+peerFrom.username+". "
 	messageChannel<-"Beginning processsing. "
 	messageChannel<-"Done processing. "
 	messageChannel<-"Here's the message: "
