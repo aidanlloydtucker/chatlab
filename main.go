@@ -65,7 +65,14 @@ func peerListen(peer Peer){
 		onMessageReceived(message,peer)
 	}
 }
-
+func peerWithName(name string) int{
+	for i:=0; i<len(peers); i++{
+		if peers[i].username == name{
+			return i
+		}
+	}
+	return -1
+}
 func listen() {
 	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -78,9 +85,13 @@ func listen() {
 		for{
 			peer,ok := <-peerChannel
 			if ok{
-				//here check if we are already connected to the same username and if so close the connection
-				peers = append(peers,peer)
-				go peerListen(peer)
+				if peerWithName(peer.username)==-1{
+					peers = append(peers,peer)
+					go peerListen(peer)
+				}else{
+				 	peer.conn.Close()
+					fmt.Println("Sadly we are already connected to "+peer.username+". Disconnecting")
+				}
 			}else{
 				return
 			}
