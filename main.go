@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"strings"
 	"net"
 	//"golang.org/x/crypto/openpgp"
 )
@@ -32,12 +33,22 @@ func processMessage(message string, messageChannel chan string) {
 }
 
 func handleConn(conn net.Conn) {
+	defer conn.Close()
 	fmt.Println("CONNECTION BABE")
-	status, err := bufio.NewReader(conn).ReadString('\n')
+	username, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(status)
+	username=strings.TrimSpace(username)
+	fmt.Println("Username: "+username)
+	for {
+		message, err := bufio.NewReader(conn).ReadString('\n')
+		if err!=nil{
+			panic(err)
+		}
+		message=strings.TrimSpace(message)
+		fmt.Println("Message from "+username+": "+message)
+	}
 }
 
 func listen() {
@@ -45,6 +56,7 @@ func listen() {
 	if err != nil {
 		panic(err)
 	}
+	defer ln.Close()
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
