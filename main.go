@@ -7,9 +7,9 @@ import (
 	//"golang.org/x/crypto/openpgp"
 )
 
+var outputChannel = make(chan chan string, 5)
 func main() {
-	outputChannel := make(chan chan string, 5)
-	printAll(outputChannel)
+	go printAll(outputChannel)
 	onMessageReceived(outputChannel, "msg1")
 	onMessageReceived(outputChannel, "msg2")
 	onMessageReceived(outputChannel, "msg3")
@@ -55,20 +55,16 @@ func listen() {
 }
 
 func printAll(stringChanChan <-chan chan string) {
-	go func() {
-		for {
-			strChan := <-stringChanChan
-			for{
-				str, ok:= <-strChan
-				if ok{
-					fmt.Printf(str)
-				}else{
-					break
-				}
+	for {
+		strChan := <-stringChanChan
+		for{
+			str, ok:= <-strChan
+			if ok{
+				fmt.Printf(str)
+			}else{
+				break
 			}
-
-			
-			fmt.Println()
 		}
-	}()
+		fmt.Println()
+	}
 }
