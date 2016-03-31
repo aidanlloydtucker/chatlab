@@ -10,18 +10,25 @@ import (
 func main() {
 	outputChannel := make(chan chan string, 5)
 	printAll(outputChannel)
-	onMessageReceived(outputChannel, "lol")
+	onMessageReceived(outputChannel, "msg1")
+	onMessageReceived(outputChannel, "msg2")
+	onMessageReceived(outputChannel, "msg3")
+	onMessageReceived(outputChannel, "msg4")
 	listen()
 }
 func onMessageReceived(outputChannel chan chan string, message string) {
-	messageChannel := make(chan string)
+	messageChannel := make(chan string, 100)
 	outputChannel <- messageChannel
-	go func() {
-		messageChannel <- processMessage(message)
+	go func(){
+		defer close(messageChannel)
+	 	processMessage(message,messageChannel)
 	}()
 }
-func processMessage(message string) string {
-	return "Processed Message: " + message
+func processMessage(message string, messageChannel chan string) {
+	messageChannel<-"Beginning processsing. "
+	messageChannel<-"Done processing. "
+	messageChannel<-"Here's the message: "
+	messageChannel<-message
 }
 
 func handleConn(conn net.Conn) {
@@ -51,8 +58,17 @@ func printAll(stringChanChan <-chan chan string) {
 	go func() {
 		for {
 			strChan := <-stringChanChan
-			str := <-strChan
-			fmt.Println(str)
+			for{
+				str, ok:= <-strChan
+				if ok{
+					fmt.Printf(str)
+				}else{
+					break
+				}
+			}
+
+			
+			fmt.Println()
 		}
 	}()
 }
