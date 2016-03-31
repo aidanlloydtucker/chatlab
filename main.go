@@ -37,14 +37,14 @@ func handleConn(conn net.Conn) {
 	fmt.Println("CONNECTION BABE")
 	username, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
-		panic(err)
+		return
 	}
 	username=strings.TrimSpace(username)
 	fmt.Println("Username: "+username)
 	for {
 		message, err := bufio.NewReader(conn).ReadString('\n')
 		if err!=nil{
-			panic(err)
+			return
 		}
 		message=strings.TrimSpace(message)
 		fmt.Println("Message from "+username+": "+message)
