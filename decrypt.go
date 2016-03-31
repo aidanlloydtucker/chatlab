@@ -24,7 +24,7 @@ func decrypt(message string, passphrase string) (string, error) {
 	}*/
 	if privateKeyEntityList == nil {
 		var keyringFileBuffer *os.File
-		keyringFileBuffer, err = os.Open("./key.key")
+		keyringFileBuffer, err = os.Open(config.PrivateKey)
 		if err != nil {
 			return "", err
 		}

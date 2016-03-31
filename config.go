@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 )
@@ -51,11 +50,10 @@ func loadConfig() error {
 }
 
 func saveConfig() error {
-	file, err := json.Marshal(config)
+	file, err := json.Marshal(&config)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(file))
 	err = ioutil.WriteFile("./config.json", file, 0777)
 	return err
 }
