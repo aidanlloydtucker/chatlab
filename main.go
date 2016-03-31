@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"net"
+	"sync"
 	//"golang.org/x/crypto/openpgp"
 )
 
@@ -12,6 +13,7 @@ var outputChannel = make(chan chan string, 5)
 var peers []Peer
 var myname string = "leijurv"
 var messagesReceivedAlready = make(map[string]bool)
+var messagesReceivedAlreadyLock = &sync.Mutex{}
 type Peer struct {
 	conn net.Conn
 	username string
@@ -21,12 +23,15 @@ func main() {
 	listen()
 }
 func onMessageReceived(message string, peerFrom Peer) {
+	messagesReceivedAlreadyLock.Lock()
 	_, found := messagesReceivedAlready[message]
 	if found{
 		fmt.Println("Lol wait. "+peerFrom.username+" sent us something we already has. Ignoring...");
+		messagesReceivedAlreadyLock.Unlock()
 		return
 	}
 	messagesReceivedAlready[message] = true
+	messagesReceivedAlreadyLock.Unlock()
 	messageChannel := make(chan string, 100)
 	outputChannel <- messageChannel
 	go func(){
