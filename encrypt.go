@@ -6,6 +6,7 @@ import (
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"net/http"
+    "time"
 )
 
 // XXX: For actual encryption in app do not use armor for encoding
@@ -30,17 +31,23 @@ func encrypt(message string, users []string) (string, error) {
 
 	var entityList openpgp.EntityList
 
-	for index, username := range users {
+	for _, username := range users {
 		eL, err := getKeyByKeybaseUsername(username)
 		if err != nil {
 			return "", err
 		}
-		if index == 0 {
-			entityList = eL
-		} else {
-			entityList = append(entityList, eL[0])
-		}
+		entityList = append(entityList, eL[0])
 	}
+
+    // Print data from the public key
+    for i := range entityList {
+        for k := range entityList[i].Identities {
+            fmt.Println("Name: " + entityList[i].Identities[k].UserId.Name)
+            fmt.Println("Email: " + entityList[i].Identities[k].UserId.Email)
+            fmt.Println("Comment: " + entityList[i].Identities[k].UserId.Comment)
+            fmt.Println("Creation Time: " + entityList[i].Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
+        }
+    }
 
 	// New buffer where the result of the encripted msg will be
 	buf := new(bytes.Buffer)
@@ -71,7 +78,7 @@ func encrypt(message string, users []string) (string, error) {
 }
 
 func main() {
-	str, err := encrypt("hello world", []string{"slaidan_lt"})
+	str, err := encrypt("hello world", []string{"leijurv", "aj_n", "slaidan_lt"})
 	if err != nil {
 		panic(err)
 	}
