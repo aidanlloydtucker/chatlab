@@ -42,6 +42,7 @@ func handleConn(conn net.Conn, peerChannel chan Peer) {
 	}
 	username=strings.TrimSpace(username)
 	fmt.Println("Received username: "+username)
+	//here make sure that username is valid
 	peerObj:=Peer{conn:conn,username:username}
 	peerChannel<-peerObj
 }
