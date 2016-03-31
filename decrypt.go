@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"golang.org/x/crypto/openpgp"
 )
@@ -11,10 +13,25 @@ import (
 // XXX: For actual encryption in app do not use armor for decoding
 
 var privateKeyEntityList openpgp.EntityList
+var passphrase string
 
-func decrypt(message string, passphrase string) (string, error) {
+func decrypt(base64msg string) (string, error) {
 
 	var err error
+
+	if passphrase == "" {
+		var pass []byte
+		pass, err = ioutil.ReadFile(config.Passphrase)
+		if err != nil {
+			panic(err)
+		}
+		passphrase = strings.TrimSpace(string(pass))
+	}
+
+	message, err := base64.StdEncoding.DecodeString(base64msg)
+	if err != nil {
+		return "", err
+	}
 
 	buf := bytes.NewBuffer([]byte(message))
 

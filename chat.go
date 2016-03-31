@@ -10,7 +10,6 @@ import (
 
 var outputChannel = make(chan chan string, 5)
 var peers []Peer
-var myname string = "leijurv"
 var messagesReceivedAlready = make(map[string]bool)
 var messagesReceivedAlreadyLock = &sync.Mutex{}
 
@@ -46,7 +45,7 @@ func processMessage(message string, messageChannel chan string, peerFrom Peer) {
 
 func handleConn(conn net.Conn, peerChannel chan Peer) {
 	fmt.Println("CONNECTION BABE. Sending our name")
-	conn.Write([]byte(myname + "\n"))
+	conn.Write([]byte(config.Username + "\n"))
 	username, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"net/http"
 
 	"golang.org/x/crypto/openpgp"
@@ -79,7 +80,9 @@ func encrypt(message string, users []string) (string, error) {
 	plaintext.Close()
 	//w.Close()
 
-	return buf.String(), nil
+	base64Enc := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	return base64Enc, nil
 }
 
 /*func main() {
