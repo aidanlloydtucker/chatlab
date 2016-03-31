@@ -47,7 +47,7 @@ func handleConn(conn net.Conn, peerChannel chan Peer) {
 	peerChannel<-peerObj
 }
 func onConnClose(peer Peer){
-	//remove from list, but idk how to do that in go =(
+	//remove from list of peers, but idk how to do that in go =(
 	fmt.Println("Disconnected from "+peer.username)
 }
 func peerListen(peer Peer){
