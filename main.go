@@ -46,11 +46,15 @@ func handleConn(conn net.Conn, peerChannel chan Peer) {
 	peerObj:=Peer{conn:conn,username:username}
 	peerChannel<-peerObj
 }
-
+func onConnClose(peer Peer){
+	//remove from list, but idk how to do that in go =(
+	fmt.Println("Disconnected from "+peer.username)
+}
 func peerListen(peer Peer){
+	defer peer.conn.Close()
+	defer onConnClose(peer)
 	conn:=peer.conn
 	username:=peer.username
-	defer conn.Close()
 	fmt.Println("Beginning to listen to "+username)
 	for {
 		message, err := bufio.NewReader(conn).ReadString('\n')
