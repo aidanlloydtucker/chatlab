@@ -11,6 +11,7 @@ import (
 var outputChannel = make(chan chan string, 5)
 var peers []Peer
 var myname string = "leijurv"
+var messagesReceivedAlready = make(map[string]bool)
 type Peer struct {
 	conn net.Conn
 	username string
@@ -20,6 +21,12 @@ func main() {
 	listen()
 }
 func onMessageReceived(message string, peerFrom Peer) {
+	_, found := messagesReceivedAlready[message]
+	if found{
+		fmt.Println("Lol wait. "+peerFrom.username+" sent us something we already has. Ignoring...");
+		return
+	}
+	messagesReceivedAlready[message] = true
 	messageChannel := make(chan string, 100)
 	outputChannel <- messageChannel
 	go func(){
