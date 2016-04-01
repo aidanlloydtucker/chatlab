@@ -29,7 +29,7 @@ func main() {
 			broadcastMessage(text)
 		}
 	}()
-	createConnection("192.168.0.101:8080")
+	//createConnection("192.168.0.101:8080")
 	// Exit capture
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
