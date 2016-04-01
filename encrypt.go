@@ -64,8 +64,12 @@ func encrypt(message string, users []string) (string, error) {
 		return "", err
 	}*/
 
+	if privateKeyEntityList == nil {
+		createPrivKey()
+	}
+
 	// Create an encryption stream
-	plaintext, err := openpgp.Encrypt(buf, entityList, nil, nil, nil)
+	plaintext, err := openpgp.Encrypt(buf, entityList, privateKeyEntityList[0], nil, nil)
 	if err != nil {
 		return "", err
 	}

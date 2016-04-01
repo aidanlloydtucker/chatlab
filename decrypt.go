@@ -15,18 +15,47 @@ import (
 var privateKeyEntityList openpgp.EntityList
 var passphrase string
 
-func decrypt(base64msg string) (string, error) {
-
+func createPrivKey() error {
 	var err error
 
 	if passphrase == "" {
 		var pass []byte
 		pass, err = ioutil.ReadFile(config.Passphrase)
 		if err != nil {
-			panic(err)
+			return err
 		}
 		passphrase = strings.TrimSpace(string(pass))
 	}
+	var keyringFileBuffer *os.File
+	keyringFileBuffer, err = os.Open(config.PrivateKey)
+	if err != nil {
+		return err
+	}
+	defer keyringFileBuffer.Close()
+
+	privateKeyEntityList, err = openpgp.ReadArmoredKeyRing(keyringFileBuffer)
+
+	entity := privateKeyEntityList[0]
+	passphraseByte := []byte(passphrase)
+	if entity.PrivateKey.Encrypted {
+		if err = entity.PrivateKey.Decrypt(passphraseByte); err != nil {
+			return err
+		}
+	}
+	for _, subkey := range entity.Subkeys {
+		if subkey.PrivateKey.Encrypted {
+			if err = subkey.PrivateKey.Decrypt(passphraseByte); err != nil {
+				return err
+			}
+		}
+	}
+
+	return err
+}
+
+func decrypt(base64msg string) (string, error) {
+
+	var err error
 
 	messageByteArr, err := base64.StdEncoding.DecodeString(base64msg)
 	if err != nil {
@@ -40,32 +69,7 @@ func decrypt(base64msg string) (string, error) {
 		return "", err
 	}*/
 	if privateKeyEntityList == nil {
-		var keyringFileBuffer *os.File
-		keyringFileBuffer, err = os.Open(config.PrivateKey)
-		if err != nil {
-			return "", err
-		}
-		defer keyringFileBuffer.Close()
-
-		privateKeyEntityList, err = openpgp.ReadArmoredKeyRing(keyringFileBuffer)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	entity := privateKeyEntityList[0]
-	passphraseByte := []byte(passphrase)
-	if entity.PrivateKey.Encrypted {
-		if err = entity.PrivateKey.Decrypt(passphraseByte); err != nil {
-			return "", err
-		}
-	}
-	for _, subkey := range entity.Subkeys {
-		if subkey.PrivateKey.Encrypted {
-			if err = subkey.PrivateKey.Decrypt(passphraseByte); err != nil {
-				return "", err
-			}
-		}
+		createPrivKey()
 	}
 
 	md, err := openpgp.ReadMessage(buf, privateKeyEntityList, nil, nil)
