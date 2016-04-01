@@ -10,9 +10,10 @@ import (
 
 var outputChannel = make(chan chan string, 5)
 var peers []Peer
+var peersLock = &sync.Mutex{}
 var messagesReceivedAlready = make(map[string]bool)
 var messagesReceivedAlreadyLock = &sync.Mutex{}
-var peerChannel chan Peer
+
 
 type Peer struct {
 	conn     net.Conn
@@ -37,10 +38,10 @@ func broadcastMessage(message string){
 	broadcastEncryptedMessage(encrypted)
 }
 func broadcastEncryptedMessage(encrypted string){
-	
-	for i:=range peers {
-		fmt.Println("Sending to "+peers[i].username)
-		peers[i].conn.Write([]byte(encrypted+"\n"))
+	tmpCopy := peers
+	for i:=range tmpCopy {
+		fmt.Println("Sending to "+tmpCopy[i].username)
+		tmpCopy[i].conn.Write([]byte(encrypted+"\n"))
 	}
 }
 func onMessageReceived(message string, peerFrom Peer) {
@@ -84,8 +85,17 @@ func handleConn(conn net.Conn) {
 	username = strings.TrimSpace(username)
 	fmt.Println("Received username: " + username)
 	//here make sure that username is valid
-	peerObj := Peer{conn: conn, username: username}
-	peerChannel <- peerObj
+	peer := Peer{conn: conn, username: username}
+	peersLock.Lock()
+	if peerWithName(peer.username) == -1 {
+		peers = append(peers, peer)
+		peersLock.Unlock()
+		go peerListen(peer)
+	} else {
+		peersLock.Unlock()
+		peer.conn.Close()
+		fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
+	}
 }
 func onConnClose(peer Peer) {
 	//remove from list of peers, but idk how to do that in go =(
@@ -121,25 +131,6 @@ func listen() {
 		panic(err)
 	}
 	defer ln.Close()
-	peerChannel = make(chan Peer)
-	defer close(peerChannel)
-	go func() {
-		for {
-			peer, ok := <-peerChannel
-			if ok {
-				if peerWithName(peer.username) == -1 {
-					peers = append(peers, peer)
-					go peerListen(peer)
-				} else {
-					peer.conn.Close()
-					fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
-				}
-			} else {
-				fmt.Println("Peers over")
-				return
-			}
-		}
-	}()
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

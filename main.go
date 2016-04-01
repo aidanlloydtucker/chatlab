@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 	"bufio"
+	"strings"
 )
 
 func main() {
@@ -26,10 +27,14 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		for{
 			text, _ := reader.ReadString('\n')
-			broadcastMessage(text)
+			text=strings.TrimSpace(text)
+			if strings.Contains(text,"connect "){
+				createConnection(strings.Split(text,"connect ")[1]+":8080")
+			}else{
+				broadcastMessage(text)
+			}
 		}
 	}()
-	//createConnection("192.168.0.101:8080")
 	// Exit capture
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
