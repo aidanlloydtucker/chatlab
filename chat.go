@@ -62,16 +62,13 @@ func onMessageReceived(message string, peerFrom Peer) {
 	}()
 }
 func processMessage(message string, messageChannel chan string, peerFrom Peer) {
-	messageChannel <- "Hey, a message from " + peerFrom.username + ". "
-	messageChannel <- "Beginning decryption. "
+	messageChannel <- "Msg relayed from " + peerFrom.username + ": "
 	msg, err := decrypt(message)
 	if err != nil {
 		messageChannel <- "Unable to decrypt =("
 		messageChannel <- err.Error()
 		return
 	}
-	messageChannel <- "Done decrypting. "
-	messageChannel <- "Here's the message: "
 	messageChannel <- msg
 }
 
