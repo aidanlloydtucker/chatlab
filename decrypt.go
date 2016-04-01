@@ -76,6 +76,12 @@ func decrypt(base64msg string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	/*for k := range md.SignedBy.Entity.Identities {
+		fmt.Println("Name: " + md.SignedBy.Entity.Identities[k].UserId.Name)
+		fmt.Println("Email: " + md.SignedBy.Entity.Identities[k].UserId.Email)
+		fmt.Println("Comment: " + md.SignedBy.Entity.Identities[k].UserId.Comment)
+		fmt.Println("Creation Time: " + md.SignedBy.Entity.Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
+	}*/
 
 	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 )
@@ -14,34 +15,34 @@ var peersLock = &sync.Mutex{}
 var messagesReceivedAlready = make(map[string]bool)
 var messagesReceivedAlreadyLock = &sync.Mutex{}
 
-
 type Peer struct {
 	conn     net.Conn
 	username string
 }
-func createConnection(ip string){
-	go func(){
 
-		conn,err := net.Dial("tcp",ip)
-		if err==nil{
+func createConnection(ip string) {
+	go func() {
+
+		conn, err := net.Dial("tcp", ip)
+		if err == nil {
 			handleConn(conn)
-		}else{
+		} else {
 			panic(err)
 		}
 	}()
 }
-func broadcastMessage(message string){
-	encrypted,err:=encrypt(message,[]string{"slaidan_lt","leijurv"})
-	if err!=nil{
+func broadcastMessage(message string) {
+	encrypted, err := encrypt(message, []string{"slaidan_lt", "leijurv"})
+	if err != nil {
 		panic(err)
 	}
 	broadcastEncryptedMessage(encrypted)
 }
-func broadcastEncryptedMessage(encrypted string){
+func broadcastEncryptedMessage(encrypted string) {
 	tmpCopy := peers
-	for i:=range tmpCopy {
-		fmt.Println("Sending to "+tmpCopy[i].username)
-		tmpCopy[i].conn.Write([]byte(encrypted+"\n"))
+	for i := range tmpCopy {
+		fmt.Println("Sending to " + tmpCopy[i].username)
+		tmpCopy[i].conn.Write([]byte(encrypted + "\n"))
 	}
 }
 func onMessageReceived(message string, peerFrom Peer) {
@@ -64,10 +65,10 @@ func onMessageReceived(message string, peerFrom Peer) {
 func processMessage(message string, messageChannel chan string, peerFrom Peer) {
 	messageChannel <- "Hey, a message from " + peerFrom.username + ". "
 	messageChannel <- "Beginning decryption. "
-	msg,err:=decrypt(message)
-	if err!=nil{
-		messageChannel<-"Unable to decrypt =("
-		messageChannel<-err.Error()
+	msg, err := decrypt(message)
+	if err != nil {
+		messageChannel <- "Unable to decrypt =("
+		messageChannel <- err.Error()
 		return
 	}
 	messageChannel <- "Done decrypting. "
@@ -125,8 +126,8 @@ func peerWithName(name string) int {
 	}
 	return -1
 }
-func listen() {
-	ln, err := net.Listen("tcp", ":8080")
+func listen(port int) {
+	ln, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
 		panic(err)
 	}
