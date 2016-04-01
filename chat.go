@@ -24,6 +24,16 @@ func createConnection(ip string){
 		handleConn(conn)
 	}()
 }
+func broadcastMessage(message string){
+	encrypted,err:=encrypt(message,[]string{"slaidan_lt","leijurv"})
+	if err!=nil{
+		panic(err)
+	}
+	for i:=range peers {
+		fmt.Println("Sending "+message+" to "+peers[i].username)
+		peers[i].conn.Write([]byte(encrypted+"\n"))
+	}
+}
 func onMessageReceived(message string, peerFrom Peer) {
 	messagesReceivedAlreadyLock.Lock()
 	_, found := messagesReceivedAlready[message]
@@ -97,12 +107,12 @@ func peerWithName(name string) int {
 	return -1
 }
 func listen() {
-	ln, err := net.Listen("tcp", ":8080")
+	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		panic(err)
 	}
 	defer ln.Close()
-	peerChannel := make(chan Peer)
+	peerChannel = make(chan Peer)
 	defer close(peerChannel)
 	go func() {
 		for {
@@ -110,12 +120,14 @@ func listen() {
 			if ok {
 				if peerWithName(peer.username) == -1 {
 					peers = append(peers, peer)
+					broadcastMessage("lol dank memes")
 					go peerListen(peer)
 				} else {
 					peer.conn.Close()
 					fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
 				}
 			} else {
+				fmt.Println("Peers over")
 				return
 			}
 		}
