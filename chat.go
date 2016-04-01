@@ -39,7 +39,7 @@ func broadcastMessage(message string){
 func broadcastEncryptedMessage(encrypted string){
 	
 	for i:=range peers {
-		fmt.Println("Sending "+encrypted+" to "+peers[i].username)
+		fmt.Println("Sending to "+peers[i].username)
 		peers[i].conn.Write([]byte(encrypted+"\n"))
 	}
 }
@@ -129,7 +129,6 @@ func listen() {
 			if ok {
 				if peerWithName(peer.username) == -1 {
 					peers = append(peers, peer)
-					broadcastMessage("lol dank memes")
 					go peerListen(peer)
 				} else {
 					peer.conn.Close()
