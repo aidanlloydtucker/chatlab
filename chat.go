@@ -97,6 +97,15 @@ func handleConn(conn net.Conn) {
 func onConnClose(peer Peer) {
 	//remove from list of peers, but idk how to do that in go =(
 	fmt.Println("Disconnected from " + peer.username)
+	peersLock.Lock()
+	index:=peerWithName(peer.username)
+	if index==-1{
+		peersLock.Unlock()
+		fmt.Println("lol what")
+		return
+	}
+	peers=append(peers[:index],peers[index+1:]...)
+	peersLock.Unlock()
 }
 func peerListen(peer Peer) {
 	defer peer.conn.Close()
