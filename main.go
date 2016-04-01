@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"bufio"
 )
 
 func main() {
@@ -21,7 +22,14 @@ func main() {
 
 	go printAll(outputChannel)
 	go listen()
-
+	go func(){
+		reader := bufio.NewReader(os.Stdin)
+		for{
+			text, _ := reader.ReadString('\n')
+			broadcastMessage(text)
+		}
+	}()
+	//createConnection("blah blah : 8080")
 	// Exit capture
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)

@@ -20,9 +20,12 @@ type Peer struct {
 }
 func createConnection(ip string){
 	go func(){
+
 		conn,err := net.Dial("tcp",ip)
-		if err!=nil{
+		if err==nil{
 			handleConn(conn)
+		}else{
+			panic(err)
 		}
 	}()
 }
@@ -113,7 +116,7 @@ func peerWithName(name string) int {
 	return -1
 }
 func listen() {
-	ln, err := net.Listen("tcp", ":8081")
+	ln, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		panic(err)
 	}
