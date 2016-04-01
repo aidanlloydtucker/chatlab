@@ -20,8 +20,10 @@ type Peer struct {
 }
 func createConnection(ip string){
 	go func(){
-		conn,_ := net.Dial("tcp",ip)
-		handleConn(conn)
+		conn,err := net.Dial("tcp",ip)
+		if err!=nil{
+			handleConn(conn)
+		}
 	}()
 }
 func broadcastMessage(message string){
@@ -29,8 +31,12 @@ func broadcastMessage(message string){
 	if err!=nil{
 		panic(err)
 	}
+	broadcastEncryptedMessage(encrypted)
+}
+func broadcastEncryptedMessage(encrypted string){
+	
 	for i:=range peers {
-		fmt.Println("Sending "+message+" to "+peers[i].username)
+		fmt.Println("Sending "+encrypted+" to "+peers[i].username)
 		peers[i].conn.Write([]byte(encrypted+"\n"))
 	}
 }
@@ -107,7 +113,7 @@ func peerWithName(name string) int {
 	return -1
 }
 func listen() {
-	ln, err := net.Listen("tcp", ":8080")
+	ln, err := net.Listen("tcp", ":8081")
 	if err != nil {
 		panic(err)
 	}
