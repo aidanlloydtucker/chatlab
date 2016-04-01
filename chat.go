@@ -12,12 +12,28 @@ var outputChannel = make(chan chan string, 5)
 var peers []Peer
 var messagesReceivedAlready = make(map[string]bool)
 var messagesReceivedAlreadyLock = &sync.Mutex{}
+var peerChannel chan Peer
 
 type Peer struct {
 	conn     net.Conn
 	username string
 }
-
+func createConnection(ip string){
+	go func(){
+		conn,_ := net.Dial("tcp",ip)
+		handleConn(conn)
+	}()
+}
+func broadcastMessage(message string){
+	encrypted,err:=encrypt(message,[]string{"slaidan_lt","leijurv"})
+	if err!=nil{
+		panic(err)
+	}
+	for i:=range peers {
+		fmt.Println("Sending "+message+" to "+peers[i].username)
+		peers[i].conn.Write([]byte(encrypted+"\n"))
+	}
+}
 func onMessageReceived(message string, peerFrom Peer) {
 	messagesReceivedAlreadyLock.Lock()
 	_, found := messagesReceivedAlready[message]
@@ -37,13 +53,19 @@ func onMessageReceived(message string, peerFrom Peer) {
 }
 func processMessage(message string, messageChannel chan string, peerFrom Peer) {
 	messageChannel <- "Hey, a message from " + peerFrom.username + ". "
-	messageChannel <- "Beginning processsing. "
-	messageChannel <- "Done processing. "
+	messageChannel <- "Beginning decryption. "
+	msg,err:=decrypt(message)
+	if err!=nil{
+		messageChannel<-"Unable to decrypt =("
+		messageChannel<-err.Error()
+		return
+	}
+	messageChannel <- "Done decrypting. "
 	messageChannel <- "Here's the message: "
-	messageChannel <- message
+	messageChannel <- msg
 }
 
-func handleConn(conn net.Conn, peerChannel chan Peer) {
+func handleConn(conn net.Conn) {
 	fmt.Println("CONNECTION BABE. Sending our name")
 	conn.Write([]byte(config.Username + "\n"))
 	username, err := bufio.NewReader(conn).ReadString('\n')
@@ -69,6 +91,7 @@ func peerListen(peer Peer) {
 	for {
 		message, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil {
+			fmt.Println(err.Error())
 			return
 		}
 		message = strings.TrimSpace(message)
@@ -89,7 +112,7 @@ func listen() {
 		panic(err)
 	}
 	defer ln.Close()
-	peerChannel := make(chan Peer)
+	peerChannel = make(chan Peer)
 	defer close(peerChannel)
 	go func() {
 		for {
@@ -97,12 +120,14 @@ func listen() {
 			if ok {
 				if peerWithName(peer.username) == -1 {
 					peers = append(peers, peer)
+					broadcastMessage("lol dank memes")
 					go peerListen(peer)
 				} else {
 					peer.conn.Close()
 					fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
 				}
 			} else {
+				fmt.Println("Peers over")
 				return
 			}
 		}
@@ -112,6 +137,6 @@ func listen() {
 		if err != nil {
 			panic(err)
 		}
-		go handleConn(conn, peerChannel)
+		go handleConn(conn)
 	}
 }
