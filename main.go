@@ -27,10 +27,13 @@ func main() {
 		reader := bufio.NewReader(os.Stdin)
 		for{
 			text, _ := reader.ReadString('\n')
-			text=strings.TrimSpace(text)
+			text=text[:len(text)-1]
 			if strings.Contains(text,"connect "){
-				createConnection(strings.Split(text,"connect ")[1]+":8080")
+				ip:=strings.Split(text,"connect ")[1]+":8080"
+				fmt.Println("Connecting "+ip)
+				createConnection(ip)
 			}else{
+				fmt.Println("Sending")
 				broadcastMessage(text)
 			}
 		}
