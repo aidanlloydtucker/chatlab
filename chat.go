@@ -22,7 +22,6 @@ type Peer struct {
 
 func createConnection(ip string) {
 	go func() {
-
 		conn, err := net.Dial("tcp", ip)
 		if err == nil {
 			handleConn(conn)
