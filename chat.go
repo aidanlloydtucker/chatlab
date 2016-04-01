@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"io/ioutil"
+	//"time"
 )
 
 var outputChannel = make(chan chan string, 5)
@@ -62,14 +64,35 @@ func onMessageReceived(message string, peerFrom Peer) {
 	}()
 }
 func processMessage(message string, messageChannel chan string, peerFrom Peer) {
-	messageChannel <- "Msg relayed from " + peerFrom.username + ": "
-	msg, err := decrypt(message)
+	messageChannel <- "Relayed from " 
+	messageChannel<-peerFrom.username
+	messageChannel<-": "
+	md, err := decrypt(message)
 	if err != nil {
 		messageChannel <- "Unable to decrypt =("
 		messageChannel <- err.Error()
 		return
 	}
-	messageChannel <- msg
+	for k := range md.SignedBy.Entity.Identities {
+		/*fmt.Println("Name: " + md.SignedBy.Entity.Identities[k].UserId.Name)
+		fmt.Println("Email: " + md.SignedBy.Entity.Identities[k].UserId.Email)
+		fmt.Println("Comment: " + md.SignedBy.Entity.Identities[k].UserId.Comment)
+		fmt.Println("Creation Time: " + md.SignedBy.Entity.Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
+		*/
+		
+		messageChannel<-md.SignedBy.Entity.Identities[k].UserId.Name
+		break
+	}
+	
+	messageChannel<-": "
+
+	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
+	if err != nil {
+		return
+	}
+
+	
+	messageChannel <- string(bytes)
 }
 
 func handleConn(conn net.Conn) {
