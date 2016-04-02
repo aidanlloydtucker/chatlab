@@ -1,14 +1,17 @@
-package main
+package chat
 
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
-	"io/ioutil"
-	//"time"
+
+	"github.com/billybobjoeaglt/chatlab/config"
+	"github.com/billybobjoeaglt/chatlab/crypt"
+	"github.com/billybobjoeaglt/chatlab/ui"
 )
 
 var outputChannel = make(chan chan string, 5)
@@ -22,7 +25,11 @@ type Peer struct {
 	username string
 }
 
-func createConnection(ip string) {
+func GetOutputChannel() chan chan string {
+	return outputChannel
+}
+
+func CreateConnection(ip string) {
 	go func() {
 		conn, err := net.Dial("tcp", ip)
 		if err == nil {
@@ -32,8 +39,8 @@ func createConnection(ip string) {
 		}
 	}()
 }
-func broadcastMessage(message string) {
-	encrypted, err := encrypt(message, []string{"slaidan_lt", "leijurv"})
+func BroadcastMessage(message string) {
+	encrypted, err := crypt.Encrypt(message, []string{"slaidan_lt", "leijurv"})
 	if err != nil {
 		panic(err)
 	}
@@ -64,10 +71,10 @@ func onMessageReceived(message string, peerFrom Peer) {
 	}()
 }
 func processMessage(message string, messageChannel chan string, peerFrom Peer) {
-	messageChannel <- "Relayed from " 
-	messageChannel<-peerFrom.username
-	messageChannel<-": "
-	md, err := decrypt(message)
+	messageChannel <- "Relayed from "
+	messageChannel <- peerFrom.username
+	messageChannel <- ": "
+	md, err := crypt.Decrypt(message)
 	if err != nil {
 		messageChannel <- "Unable to decrypt =("
 		messageChannel <- err.Error()
@@ -79,25 +86,24 @@ func processMessage(message string, messageChannel chan string, peerFrom Peer) {
 		fmt.Println("Comment: " + md.SignedBy.Entity.Identities[k].UserId.Comment)
 		fmt.Println("Creation Time: " + md.SignedBy.Entity.Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
 		*/
-		
-		messageChannel<-md.SignedBy.Entity.Identities[k].UserId.Name
+
+		messageChannel <- md.SignedBy.Entity.Identities[k].UserId.Name
 		break
 	}
-	
-	messageChannel<-": "
+
+	messageChannel <- ": "
 
 	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		return
 	}
 
-	
 	messageChannel <- string(bytes)
 }
 
 func handleConn(conn net.Conn) {
 	fmt.Println("CONNECTION BABE. Sending our name")
-	conn.Write([]byte(config.Username + "\n"))
+	conn.Write([]byte(config.GetConfig().Username + "\n"))
 	username, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return
@@ -109,6 +115,7 @@ func handleConn(conn net.Conn) {
 	peersLock.Lock()
 	if peerWithName(peer.username) == -1 {
 		peers = append(peers, peer)
+		ui.AddUser(peer.username)
 		peersLock.Unlock()
 		go peerListen(peer)
 	} else {
@@ -121,13 +128,13 @@ func onConnClose(peer Peer) {
 	//remove from list of peers, but idk how to do that in go =(
 	fmt.Println("Disconnected from " + peer.username)
 	peersLock.Lock()
-	index:=peerWithName(peer.username)
-	if index==-1{
+	index := peerWithName(peer.username)
+	if index == -1 {
 		peersLock.Unlock()
 		fmt.Println("lol what")
 		return
 	}
-	peers=append(peers[:index],peers[index+1:]...)
+	peers = append(peers[:index], peers[index+1:]...)
 	peersLock.Unlock()
 }
 func peerListen(peer Peer) {
@@ -154,7 +161,7 @@ func peerWithName(name string) int {
 	}
 	return -1
 }
-func listen(port int) {
+func Listen(port int) {
 	ln, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
 		panic(err)

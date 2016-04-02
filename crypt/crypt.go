@@ -1,16 +1,21 @@
-package main
+package crypt
 
 import (
 	"bytes"
 	"encoding/base64"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"strings"
+
+	"github.com/billybobjoeaglt/chatlab/config"
 
 	"golang.org/x/crypto/openpgp"
 )
 
+var privateKeyEntityList openpgp.EntityList
+var passphrase string
 var keyMap = make(map[string]*openpgp.Entity)
-
-// XXX: For actual encryption in app do not use armor for encoding
 
 func getKeyByKeybaseUsername(username string) (openpgp.EntityList, error) {
 	// Gets public key of recipient
@@ -28,7 +33,7 @@ func getKeyByKeybaseUsername(username string) (openpgp.EntityList, error) {
 	return entityList, nil
 }
 
-func encrypt(message string, users []string) (string, error) {
+func Encrypt(message string, users []string) (string, error) {
 
 	var entityList openpgp.EntityList
 
@@ -45,24 +50,8 @@ func encrypt(message string, users []string) (string, error) {
 		entityList = append(entityList, val)
 	}
 
-	// Print data from the public key
-	/*for i := range entityList {
-		for k := range entityList[i].Identities {
-			fmt.Println("Name: " + entityList[i].Identities[k].UserId.Name)
-			fmt.Println("Email: " + entityList[i].Identities[k].UserId.Email)
-			fmt.Println("Comment: " + entityList[i].Identities[k].UserId.Comment)
-			fmt.Println("Creation Time: " + entityList[i].Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
-		}
-	}*/
-
 	// New buffer where the result of the encripted msg will be
 	buf := new(bytes.Buffer)
-
-	// Create an armored template stream for msg
-	/*w, err := armor.Encode(buf, "PGP MESSAGE", nil)
-	if err != nil {
-		return "", err
-	}*/
 
 	if privateKeyEntityList == nil {
 		createPrivKey()
@@ -82,17 +71,68 @@ func encrypt(message string, users []string) (string, error) {
 
 	// Close streams, finishing encryption and armor texts
 	plaintext.Close()
-	//w.Close()
 
 	base64Enc := base64.StdEncoding.EncodeToString(buf.Bytes())
 
 	return base64Enc, nil
 }
 
-/*func main() {
-	str, err := encrypt("hello world", []string{"leijurv", "aj_n", "slaidan_lt"})
-	if err != nil {
-		panic(err)
+func createPrivKey() error {
+	var err error
+
+	if passphrase == "" {
+		var pass []byte
+		pass, err = ioutil.ReadFile(config.GetConfig().Passphrase)
+		if err != nil {
+			return err
+		}
+		passphrase = strings.TrimSpace(string(pass))
 	}
-	fmt.Println(str)
-}*/
+	var keyringFileBuffer *os.File
+	keyringFileBuffer, err = os.Open(config.GetConfig().PrivateKey)
+	if err != nil {
+		return err
+	}
+	defer keyringFileBuffer.Close()
+
+	privateKeyEntityList, err = openpgp.ReadArmoredKeyRing(keyringFileBuffer)
+
+	entity := privateKeyEntityList[0]
+	passphraseByte := []byte(passphrase)
+	if entity.PrivateKey.Encrypted {
+		if err = entity.PrivateKey.Decrypt(passphraseByte); err != nil {
+			return err
+		}
+	}
+	for _, subkey := range entity.Subkeys {
+		if subkey.PrivateKey.Encrypted {
+			if err = subkey.PrivateKey.Decrypt(passphraseByte); err != nil {
+				return err
+			}
+		}
+	}
+
+	return err
+}
+
+func Decrypt(base64msg string) (*openpgp.MessageDetails, error) {
+
+	var err error
+
+	messageByteArr, err := base64.StdEncoding.DecodeString(base64msg)
+	if err != nil {
+		return nil, err
+	}
+
+	buf := bytes.NewBuffer(messageByteArr)
+
+	if privateKeyEntityList == nil {
+		createPrivKey()
+	}
+
+	md, err := openpgp.ReadMessage(buf, privateKeyEntityList, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return md, nil
+}

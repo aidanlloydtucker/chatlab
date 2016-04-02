@@ -27,3 +27,5 @@ _testmain.go
 push.sh
 *.key
 config.json
+chatlab
+glade.ui

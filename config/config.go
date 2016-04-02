@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"encoding/json"
@@ -14,7 +14,7 @@ type Config struct {
 	Passphrase string
 }
 
-func makeConfig() (*Config, error) {
+func MakeConfig() (*Config, error) {
 	var newConfig = &Config{
 		Username:   "user",
 		PrivateKey: "./key.key",
@@ -23,10 +23,14 @@ func makeConfig() (*Config, error) {
 	return newConfig, nil
 }
 
-func loadConfig() error {
+func GetConfig() *Config {
+	return config
+}
+
+func LoadConfig() error {
 	if _, err := os.Stat("./config.json"); os.IsNotExist(err) {
 		var newConfig *Config
-		newConfig, err = makeConfig()
+		newConfig, err = MakeConfig()
 		if err != nil {
 			return err
 		}
@@ -49,7 +53,7 @@ func loadConfig() error {
 	return nil
 }
 
-func saveConfig() error {
+func SaveConfig() error {
 	file, err := json.Marshal(&config)
 	if err != nil {
 		return err
