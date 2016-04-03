@@ -1,8 +1,10 @@
 package gui
 
 import (
+	"fmt"
 	"unsafe"
 
+	"github.com/billybobjoeaglt/chatlab/config"
 	"github.com/billybobjoeaglt/chatlab/ui/common"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/glib"
@@ -16,18 +18,18 @@ var chatSelectIter gtk.TreeIter
 var sendMessageCB common.SendMessageFunc
 
 func StartGUI() {
-	glib.ThreadInit(nil)
 	gdk.ThreadsInit()
-	gdk.ThreadsEnter()
 	gtk.Init(nil)
 
 	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
 	window.SetPosition(gtk.WIN_POS_CENTER)
 	window.SetTitle("ChatLab GUI")
 
+	gdk.ThreadsEnter()
 	window.Connect("destroy", func(ctx *glib.CallbackContext) {
 		gtk.MainQuit()
 	}, "foo")
+	gdk.ThreadsLeave()
 
 	hpane := gtk.NewHPaned()
 	hpane.SetPosition(200)
@@ -64,19 +66,21 @@ func StartGUI() {
 	hbox := gtk.NewHBox(false, 5)
 
 	msgField := gtk.NewEntry()
+	gdk.ThreadsEnter()
 	msgField.Connect("key-press-event", func(ctx *glib.CallbackContext) {
 		arg := ctx.Args(0)
 		key := *(**gdk.EventKey)(unsafe.Pointer(&arg))
 		if key.Keyval == 65293 {
-			go sendMessageFromGUI(msgField)
+			go sendMessage(msgField)
 		}
 	})
 	hbox.Add(msgField)
 
 	sendButton := gtk.NewButtonWithLabel("Send")
 	sendButton.Clicked(func() {
-		go sendMessageFromGUI(msgField)
+		go sendMessage(msgField)
 	})
+	gdk.ThreadsLeave()
 	hbox.Add(sendButton)
 
 	vbox.Add(swin)
@@ -88,32 +92,35 @@ func StartGUI() {
 
 	window.SetSizeRequest(1080, 720)
 	window.ShowAll()
-	gtk.Main()
+
+	gdk.ThreadsEnter()
+	go gtk.Main()
+	gdk.ThreadsLeave()
 
 }
 func QuitGUI() {
 	gtk.MainQuit()
 }
 
-func sendMessageFromGUI(msgField *gtk.Entry) {
-	if msgField.GetTextLength() == 0 {
-		return
+func sendMessage(msgField *gtk.Entry) {
+	if msgField.GetTextLength() > 0 {
+		if sendMessageCB != nil {
+			sendMessageCB("bob", msgField.GetText())
+		}
+		AddMessage(config.GetConfig().Username + ": " + msgField.GetText())
+		msgField.SetText("")
 	}
-	if sendMessageCB != nil {
-		sendMessageCB("bob", msgField.GetText())
-	}
-	AddMessage("bob", msgField.GetText())
-	msgField.SetText("")
 }
 
 func SetSendMessage(f common.SendMessageFunc) {
 	sendMessageCB = f
 }
 
-func AddMessage(user string, message string) {
-	gdk.ThreadsEnter()
-	chatBoxBuf.Insert(&chatBoxIter, user+": "+message+"\n")
-	gdk.ThreadsLeave()
+func AddMessage(message string) {
+	fmt.Println("adding")
+	//gdk.ThreadsEnter()
+	chatBoxBuf.Insert(&chatBoxIter, message+"\n")
+	//gdk.ThreadsLeave()
 }
 
 func AddUser(user string) {

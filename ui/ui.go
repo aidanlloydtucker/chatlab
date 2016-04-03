@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/billybobjoeaglt/chatlab/ui/common"
 	"github.com/billybobjoeaglt/chatlab/ui/gui"
 )
@@ -26,9 +28,24 @@ func Quit() {
 	}
 }
 
+/*func AddMessageChan(stringChanChan <-chan chan string) {
+	for {
+		strChan := <-stringChanChan
+		for {
+			str, ok := <-strChan
+			if ok {
+				fmt.Printf(str)
+			} else {
+				break
+			}
+		}
+		fmt.Println()
+	}
+}*/
+
 func AddMessage(user string, message string) {
 	if hasUI {
-		gui.AddMessage(user, message)
+		fmt.Println(user + ": " + message)
 	}
 }
 

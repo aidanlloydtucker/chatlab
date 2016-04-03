@@ -74,6 +74,7 @@ func runApp(c *cli.Context) {
 	ui.SetSendMessage(func(user string, message string) {
 		go chat.BroadcastMessage(message)
 	})
+	//go addMessageUI(chat.GetOutputChannel())
 
 	// Exit capture
 	sigs := make(chan os.Signal, 1)
@@ -93,6 +94,7 @@ func runApp(c *cli.Context) {
 	<-done
 	fmt.Println("Safe Exited")
 }
+
 func printAll(stringChanChan <-chan chan string) {
 	for {
 		strChan := <-stringChanChan
