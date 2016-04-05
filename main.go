@@ -53,7 +53,8 @@ func main() {
 }
 
 func runApp(c *cli.Context) {
-	err := config.LoadConfig()
+	var err error
+	err = config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -79,7 +80,7 @@ func runApp(c *cli.Context) {
 	if !c.Bool("nogui") {
 		ui.NewGUI()
 	} else if c.Bool("cli") {
-		err := ui.NewCLI()
+		err = ui.NewCLI()
 		if err != nil {
 			panic(err)
 		}
@@ -96,20 +97,19 @@ func runApp(c *cli.Context) {
 
 	// Exit capture
 	sigs := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		_ = <-sigs
-		err := config.SaveConfig()
-		if err != nil {
-			panic(err)
-		}
-		ui.Quit()
-		done <- true
+		<-sigs
+		common.Done <- true
 	}()
-	<-done
+	<-common.Done
+	err = config.SaveConfig()
+	if err != nil {
+		panic(err)
+	}
+	ui.Quit()
 	fmt.Println("Safe Exited")
 }
 

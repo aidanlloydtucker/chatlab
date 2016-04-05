@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"strings"
-	"syscall"
 
 	"gopkg.in/readline.v1"
 
@@ -64,9 +63,9 @@ func StartCLI() {
 		line, err := rl.Readline()
 		if err != nil {
 			if err == readline.ErrInterrupt {
-				syscall.Exit(0)
+				common.Done <- true
 			} else if err == io.EOF {
-				syscall.Exit(0)
+				common.Done <- true
 			}
 			break
 		}

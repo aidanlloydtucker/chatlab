@@ -2,23 +2,18 @@ package gui
 
 import (
 	"fmt"
-	"unsafe"
 
 	"github.com/billybobjoeaglt/chatlab/common"
-	"github.com/billybobjoeaglt/chatlab/config"
-	"github.com/mattn/go-gtk/gdk"
-	"github.com/mattn/go-gtk/glib"
-	"github.com/mattn/go-gtk/gtk"
 )
 
-var chatBoxBuf *gtk.TextBuffer
+/*var chatBoxBuf *gtk.TextBuffer
 var chatBoxIter gtk.TextIter
 var chatSelectList *gtk.ListStore
-var chatSelectIter gtk.TreeIter
+var chatSelectIter gtk.TreeIter*/
 var sendMessageCB common.SendMessageFunc
 
 func StartGUI() {
-	gdk.ThreadsInit()
+	/*gdk.ThreadsInit()
 	gtk.Init(nil)
 
 	window := gtk.NewWindow(gtk.WINDOW_TOPLEVEL)
@@ -95,22 +90,22 @@ func StartGUI() {
 
 	gdk.ThreadsEnter()
 	go gtk.Main()
-	gdk.ThreadsLeave()
+	gdk.ThreadsLeave()*/
 
 }
 func QuitGUI() {
-	gtk.MainQuit()
+	//gtk.MainQuit()
 }
 
-func sendMessage(msgField *gtk.Entry) {
+/*func sendMessage(msgField *gtk.Entry) {
 	if msgField.GetTextLength() > 0 {
 		/*if sendMessageCB != nil {
 			sendMessageCB("bob", msgField.GetText())
-		}*/
+		}*
 		AddMessage(config.GetConfig().Username + ": " + msgField.GetText())
 		msgField.SetText("")
 	}
-}
+}*/
 
 func SetSendMessage(f common.SendMessageFunc) {
 	sendMessageCB = f
@@ -119,14 +114,14 @@ func SetSendMessage(f common.SendMessageFunc) {
 func AddMessage(message string) {
 	fmt.Println("adding")
 	//gdk.ThreadsEnter()
-	chatBoxBuf.Insert(&chatBoxIter, message+"\n")
+	//chatBoxBuf.Insert(&chatBoxIter, message+"\n")
 	//gdk.ThreadsLeave()
 }
 
 func AddUser(user string) {
-	gdk.ThreadsEnter()
+	/*gdk.ThreadsEnter()
 	chatSelectList.Append(&chatSelectIter)
 	chatSelectList.Set(&chatSelectIter,
 		0, user)
-	gdk.ThreadsLeave()
+	gdk.ThreadsLeave()*/
 }

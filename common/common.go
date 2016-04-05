@@ -21,3 +21,5 @@ func NewMessage() *Message {
 
 type SendMessageFunc func(Message)
 type CreateConnFunc func(string)
+
+var Done = make(chan bool, 1)
