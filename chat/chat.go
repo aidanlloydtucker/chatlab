@@ -9,12 +9,15 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/config"
 	"github.com/billybobjoeaglt/chatlab/crypt"
+	"github.com/billybobjoeaglt/chatlab/logger"
 	"github.com/billybobjoeaglt/chatlab/ui"
 )
 
 var outputChannel = make(chan chan string, 5)
+var msgChan = make(chan common.Message, 5)
 var peers []Peer
 var peersLock = &sync.Mutex{}
 var messagesReceivedAlready = make(map[string]bool)
@@ -29,6 +32,10 @@ func GetOutputChannel() chan chan string {
 	return outputChannel
 }
 
+func GetMessageChannel() chan common.Message {
+	return msgChan
+}
+
 func CreateConnection(ip string) {
 	go func() {
 		conn, err := net.Dial("tcp", ip)
@@ -39,8 +46,8 @@ func CreateConnection(ip string) {
 		}
 	}()
 }
-func BroadcastMessage(message string) {
-	encrypted, err := crypt.Encrypt(message, []string{"slaidan_lt", "leijurv"})
+func BroadcastMessage(msg common.Message) {
+	encrypted, err := crypt.Encrypt(msg.Message, []string{"slaidan_lt", "leijurv"})
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +56,9 @@ func BroadcastMessage(message string) {
 func broadcastEncryptedMessage(encrypted string) {
 	tmpCopy := peers
 	for i := range tmpCopy {
-		fmt.Println("Sending to " + tmpCopy[i].username)
+		if logger.Verbose {
+			fmt.Println("Sending to " + tmpCopy[i].username)
+		}
 		tmpCopy[i].conn.Write([]byte(encrypted + "\n"))
 	}
 }
@@ -57,7 +66,9 @@ func onMessageReceived(message string, peerFrom Peer) {
 	messagesReceivedAlreadyLock.Lock()
 	_, found := messagesReceivedAlready[message]
 	if found {
-		fmt.Println("Lol wait. " + peerFrom.username + " sent us something we already has. Ignoring...")
+		if logger.Verbose {
+			fmt.Println("Lol wait. " + peerFrom.username + " sent us something we already has. Ignoring...")
+		}
 		messagesReceivedAlreadyLock.Unlock()
 		return
 	}
@@ -67,17 +78,19 @@ func onMessageReceived(message string, peerFrom Peer) {
 	outputChannel <- messageChannel
 	go func() {
 		defer close(messageChannel)
-		processMessage(message, messageChannel, peerFrom)
+		processMessage(message, msgChan, peerFrom)
 	}()
 }
-func processMessage(message string, messageChannel chan string, peerFrom Peer) {
-	messageChannel <- "Relayed from "
-	messageChannel <- peerFrom.username
-	messageChannel <- ": "
+func processMessage(message string, messageChannel chan common.Message, peerFrom Peer) {
+	msg := common.NewMessage()
+
+	defer func() { messageChannel <- *msg }()
+
+	msg.Username = peerFrom.username
 	md, err := crypt.Decrypt(message)
 	if err != nil {
-		messageChannel <- "Unable to decrypt =("
-		messageChannel <- err.Error()
+		msg.Decrypted = false
+		msg.Err = err
 		return
 	}
 	for k := range md.SignedBy.Entity.Identities {
@@ -87,29 +100,32 @@ func processMessage(message string, messageChannel chan string, peerFrom Peer) {
 		fmt.Println("Creation Time: " + md.SignedBy.Entity.Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
 		*/
 
-		messageChannel <- md.SignedBy.Entity.Identities[k].UserId.Name
+		msg.Fullname = md.SignedBy.Entity.Identities[k].UserId.Name
 		break
 	}
 
-	messageChannel <- ": "
-
 	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
 	if err != nil {
+		msg.Err = err
 		return
 	}
 
-	messageChannel <- string(bytes)
+	msg.Message = string(bytes)
 }
 
 func handleConn(conn net.Conn) {
-	fmt.Println("CONNECTION BABE. Sending our name")
+	if logger.Verbose {
+		fmt.Println("CONNECTION BABE. Sending our name")
+	}
 	conn.Write([]byte(config.GetConfig().Username + "\n"))
 	username, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
 		return
 	}
 	username = strings.TrimSpace(username)
-	fmt.Println("Received username: " + username)
+	if logger.Verbose {
+		fmt.Println("Received username: " + username)
+	}
 	//here make sure that username is valid
 	peer := Peer{conn: conn, username: username}
 	peersLock.Lock()
@@ -121,17 +137,23 @@ func handleConn(conn net.Conn) {
 	} else {
 		peersLock.Unlock()
 		peer.conn.Close()
-		fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
+		if logger.Verbose {
+			fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
+		}
 	}
 }
 func onConnClose(peer Peer) {
 	//remove from list of peers, but idk how to do that in go =(
-	fmt.Println("Disconnected from " + peer.username)
+	if logger.Verbose {
+		fmt.Println("Disconnected from " + peer.username)
+	}
 	peersLock.Lock()
 	index := peerWithName(peer.username)
 	if index == -1 {
 		peersLock.Unlock()
-		fmt.Println("lol what")
+		if logger.Verbose {
+			fmt.Println("lol what")
+		}
 		return
 	}
 	peers = append(peers[:index], peers[index+1:]...)
@@ -142,11 +164,15 @@ func peerListen(peer Peer) {
 	defer onConnClose(peer)
 	conn := peer.conn
 	username := peer.username
-	fmt.Println("Beginning to listen to " + username)
+	if logger.Verbose {
+		fmt.Println("Beginning to listen to " + username)
+	}
 	for {
 		message, err := bufio.NewReader(conn).ReadString('\n')
 		if err != nil {
-			fmt.Println(err.Error())
+			if logger.Verbose {
+				fmt.Println(err.Error())
+			}
 			return
 		}
 		message = strings.TrimSpace(message)

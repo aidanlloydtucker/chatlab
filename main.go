@@ -1,15 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
 	"github.com/billybobjoeaglt/chatlab/chat"
+	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/config"
+	"github.com/billybobjoeaglt/chatlab/logger"
 	"github.com/billybobjoeaglt/chatlab/ui"
 	"github.com/codegangsta/cli"
 )
@@ -37,6 +37,14 @@ func main() {
 			Name:  "nogui, n",
 			Usage: "Disables GUI",
 		},
+		cli.BoolFlag{
+			Name:  "cli, c",
+			Usage: "Enables CLI",
+		},
+		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "Enables verbosity",
+		},
 	}
 	app.UsageText = "chat [arguments...]"
 	app.Action = runApp
@@ -49,10 +57,10 @@ func runApp(c *cli.Context) {
 	if err != nil {
 		panic(err)
 	}
-
-	go printAll(chat.GetOutputChannel())
+	go uiPrint(chat.GetMessageChannel())
+	//go printAll(chat.GetOutputChannel())
 	go chat.Listen(c.Int("port"))
-	go func() {
+	/*go func() {
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			text, _ := reader.ReadString('\n')
@@ -66,15 +74,25 @@ func runApp(c *cli.Context) {
 				chat.BroadcastMessage(text)
 			}
 		}
-	}()
+	}()*/
 
 	if !c.Bool("nogui") {
 		ui.NewGUI()
+	} else if c.Bool("cli") {
+		err := ui.NewCLI()
+		if err != nil {
+			panic(err)
+		}
 	}
-	ui.SetSendMessage(func(user string, message string) {
-		go chat.BroadcastMessage(message)
+
+	logger.Verbose = c.Bool("verbose")
+
+	ui.SetSendMessage(func(msg common.Message) {
+		go chat.BroadcastMessage(msg)
 	})
-	//go addMessageUI(chat.GetOutputChannel())
+	ui.SetCreateConn(func(ip string) {
+		go chat.CreateConnection(ip)
+	})
 
 	// Exit capture
 	sigs := make(chan os.Signal, 1)
@@ -95,7 +113,7 @@ func runApp(c *cli.Context) {
 	fmt.Println("Safe Exited")
 }
 
-func printAll(stringChanChan <-chan chan string) {
+/*func printAll(stringChanChan <-chan chan string) {
 	for {
 		strChan := <-stringChanChan
 		for {
@@ -107,5 +125,13 @@ func printAll(stringChanChan <-chan chan string) {
 			}
 		}
 		fmt.Println()
+	}
+}*/
+func uiPrint(msgChan <-chan common.Message) {
+	for {
+		msg, ok := <-msgChan
+		if ok {
+			ui.AddMessage(msg)
+		}
 	}
 }

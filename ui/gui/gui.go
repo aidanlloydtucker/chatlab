@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/config"
-	"github.com/billybobjoeaglt/chatlab/ui/common"
 	"github.com/mattn/go-gtk/gdk"
 	"github.com/mattn/go-gtk/glib"
 	"github.com/mattn/go-gtk/gtk"
@@ -104,9 +104,9 @@ func QuitGUI() {
 
 func sendMessage(msgField *gtk.Entry) {
 	if msgField.GetTextLength() > 0 {
-		if sendMessageCB != nil {
+		/*if sendMessageCB != nil {
 			sendMessageCB("bob", msgField.GetText())
-		}
+		}*/
 		AddMessage(config.GetConfig().Username + ": " + msgField.GetText())
 		msgField.SetText("")
 	}
