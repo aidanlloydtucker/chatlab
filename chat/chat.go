@@ -47,7 +47,7 @@ func CreateConnection(ip string) {
 	}()
 }
 func BroadcastMessage(msg common.Message) {
-	encrypted, err := crypt.Encrypt(msg.Message, []string{"slaidan_lt", "leijurv"})
+	encrypted, err := crypt.Encrypt(msg.Message, msg.ToUsers)
 	if err != nil {
 		panic(err)
 	}
@@ -74,10 +74,10 @@ func onMessageReceived(message string, peerFrom Peer) {
 	}
 	messagesReceivedAlready[message] = true
 	messagesReceivedAlreadyLock.Unlock()
-	messageChannel := make(chan string, 100)
-	outputChannel <- messageChannel
+	//messageChannel := make(chan string, 100)
+	//outputChannel <- messageChannel
 	go func() {
-		defer close(messageChannel)
+		//defer close(messageChannel)
 		processMessage(message, msgChan, peerFrom)
 	}()
 }
