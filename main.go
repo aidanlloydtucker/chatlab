@@ -33,9 +33,13 @@ func main() {
 			Value: 8080,
 			Usage: "set port of client",
 		},
-		cli.BoolFlag{
+		/*cli.BoolFlag{
 			Name:  "nogui, n",
 			Usage: "Disables GUI",
+		},*/
+		cli.BoolFlag{
+			Name:  "gui, g",
+			Usage: "Enables GUI",
 		},
 		cli.BoolFlag{
 			Name:  "cli, c",
@@ -77,7 +81,7 @@ func runApp(c *cli.Context) {
 		}
 	}()*/
 
-	if !c.Bool("nogui") {
+	if c.Bool("gui") {
 		ui.NewGUI()
 	} else if c.Bool("cli") {
 		err = ui.NewCLI()
