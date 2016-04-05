@@ -85,3 +85,9 @@ func AddUser(user string) {
 		gui.AddUser(user)
 	}
 }
+func RemoveUser(user string) {
+	switch uiType {
+	case 1:
+		cli.RemoveUser(user)
+	}
+}

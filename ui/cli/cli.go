@@ -127,6 +127,15 @@ func AddMessage(msg common.Message) {
 	logger.Println(styles["username"](msg.Username+":"), msg.Message)
 }
 
+func RemoveUser(user string) {
+	for i, val := range chatList {
+		if val == user {
+			chatList = chatList[:i+copy(chatList[i:], chatList[i+1:])]
+			break
+		}
+	}
+}
+
 func AddUser(user string) {
 	chatList = append(chatList, user)
 	logger.Println(styles["notification"]("New User: " + user))

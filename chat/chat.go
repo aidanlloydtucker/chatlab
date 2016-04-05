@@ -93,15 +93,17 @@ func processMessage(message string, messageChannel chan common.Message, peerFrom
 		msg.Err = err
 		return
 	}
-	for k := range md.SignedBy.Entity.Identities {
-		/*fmt.Println("Name: " + md.SignedBy.Entity.Identities[k].UserId.Name)
-		fmt.Println("Email: " + md.SignedBy.Entity.Identities[k].UserId.Email)
-		fmt.Println("Comment: " + md.SignedBy.Entity.Identities[k].UserId.Comment)
-		fmt.Println("Creation Time: " + md.SignedBy.Entity.Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
-		*/
+	if md.SignedBy != nil && md.SignedBy.Entity != nil && md.SignedBy.Entity.Identities != nil {
+		for k := range md.SignedBy.Entity.Identities {
+			/*fmt.Println("Name: " + md.SignedBy.Entity.Identities[k].UserId.Name)
+			fmt.Println("Email: " + md.SignedBy.Entity.Identities[k].UserId.Email)
+			fmt.Println("Comment: " + md.SignedBy.Entity.Identities[k].UserId.Comment)
+			fmt.Println("Creation Time: " + md.SignedBy.Entity.Identities[k].SelfSignature.CreationTime.Format(time.UnixDate) + "\n")
+			*/
 
-		msg.Fullname = md.SignedBy.Entity.Identities[k].UserId.Name
-		break
+			msg.Fullname = md.SignedBy.Entity.Identities[k].UserId.Name
+			break
+		}
 	}
 
 	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
@@ -147,6 +149,7 @@ func onConnClose(peer Peer) {
 	if logger.Verbose {
 		fmt.Println("Disconnected from " + peer.username)
 	}
+	ui.RemoveUser(peer.username)
 	peersLock.Lock()
 	index := peerWithName(peer.username)
 	if index == -1 {

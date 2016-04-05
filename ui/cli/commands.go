@@ -89,4 +89,27 @@ var commandArr = []Command{
 			}
 		},
 	},
+	/*Command{
+		regex:   regexp.MustCompile(`\/help`),
+		command: "help",
+		desc:    "displays help",
+		args:    "/help",
+		example: []string{
+			"/help",
+		},
+		callback: func(line string, args []string) {
+			chat := args[0]
+			hasChat := false
+			for i, val := range chatList {
+				if val == chat {
+					hasChat = true
+					logger.Println("Connecting to chat", chat)
+					currentChat = i
+				}
+			}
+			if !hasChat {
+				logger.Println("Error: Missing Chat")
+			}
+		},
+	},*/
 }
