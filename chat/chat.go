@@ -54,6 +54,9 @@ func BroadcastMessage(msg common.Message) {
 	broadcastEncryptedMessage(encrypted)
 }
 func broadcastEncryptedMessage(encrypted string) {
+	messagesReceivedAlreadyLock.Lock()
+	messagesReceivedAlready[encrypted] = true
+	messagesReceivedAlreadyLock.Unlock()
 	tmpCopy := peers
 	for i := range tmpCopy {
 		if logger.Verbose {
@@ -76,6 +79,7 @@ func onMessageReceived(message string, peerFrom Peer) {
 	messagesReceivedAlreadyLock.Unlock()
 	//messageChannel := make(chan string, 100)
 	//outputChannel <- messageChannel
+	broadcastEncryptedMessage(message)
 	go func() {
 		//defer close(messageChannel)
 		processMessage(message, msgChan, peerFrom)
