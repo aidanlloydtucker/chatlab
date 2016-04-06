@@ -53,8 +53,8 @@ func main() {
 			Usage: "Enables relay mode",
 		},
 	}
-	app.UsageText = "chat [arguments...]"
-	app.Version = "0.2.0"
+	app.UsageText = "chatlab [arguments...]"
+	app.Version = "0.3.0"
 	app.Action = runApp
 	app.Run(os.Args)
 
