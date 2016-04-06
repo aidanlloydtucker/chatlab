@@ -12,13 +12,16 @@ type Config struct {
 	Username   string
 	PrivateKey string
 	Passphrase string
+	FirstTime  bool
 }
 
+// Creates a new config struct
 func MakeConfig() (*Config, error) {
 	var newConfig = &Config{
-		Username:   "user",
+		Username:   "",
 		PrivateKey: "./key.key",
 		Passphrase: "./pass.key",
+		FirstTime:  true,
 	}
 	return newConfig, nil
 }
@@ -27,6 +30,7 @@ func GetConfig() *Config {
 	return config
 }
 
+// Checks if config is in file. If not, make one; If so, open the file.
 func LoadConfig() error {
 	if _, err := os.Stat("./config.json"); os.IsNotExist(err) {
 		var newConfig *Config

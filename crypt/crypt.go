@@ -3,11 +3,13 @@ package crypt
 import (
 	"bytes"
 	"encoding/base64"
+	"encoding/gob"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
+	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/config"
 
 	"golang.org/x/crypto/openpgp"
@@ -33,10 +35,11 @@ func getKeyByKeybaseUsername(username string) (openpgp.EntityList, error) {
 	return entityList, nil
 }
 
+// Encrypts a message to the users
 func Encrypt(message string, users []string) (string, error) {
-
 	var entityList openpgp.EntityList
 
+	// Loop through and get the key for each of the users
 	for _, username := range users {
 		val, ok := keyMap[username]
 		if !ok {
@@ -77,9 +80,62 @@ func Encrypt(message string, users []string) (string, error) {
 	return base64Enc, nil
 }
 
+func EncryptMessage(msg common.Message) (string, error) {
+	var gobBuf bytes.Buffer
+	enc := gob.NewEncoder(&gobBuf) // Will write to buf.
+	err := enc.Encode(msg)
+	if err != nil {
+		return "", err
+	}
+
+	var entityList openpgp.EntityList
+
+	// Loop through and get the key for each of the users
+	for _, username := range msg.ToUsers {
+		val, ok := keyMap[username]
+		if !ok {
+			eL, err2 := getKeyByKeybaseUsername(username)
+			if err2 != nil {
+				return "", err2
+			}
+			keyMap[username] = eL[0]
+			val, _ = keyMap[username]
+		}
+		entityList = append(entityList, val)
+	}
+
+	// New buffer where the result of the encripted msg will be
+
+	if privateKeyEntityList == nil {
+		createPrivKey()
+	}
+
+	encBuf := new(bytes.Buffer)
+
+	// Create an encryption stream
+	plaintext, err := openpgp.Encrypt(encBuf, entityList, privateKeyEntityList[0], nil, nil)
+	if err != nil {
+		return "", err
+	}
+
+	// Write a byte array saying the message to encryption stream
+
+	if _, err := plaintext.Write(gobBuf.Bytes()); err != nil {
+		return "", err
+	}
+
+	// Close streams, finishing encryption and armor texts
+	plaintext.Close()
+
+	base64Enc := base64.StdEncoding.EncodeToString(encBuf.Bytes())
+
+	return base64Enc, nil
+}
+
 func createPrivKey() error {
 	var err error
 
+	// If the passphrase is blank, get it from the config
 	if passphrase == "" {
 		var pass []byte
 		pass, err = ioutil.ReadFile(config.GetConfig().Passphrase)
@@ -88,6 +144,7 @@ func createPrivKey() error {
 		}
 		passphrase = strings.TrimSpace(string(pass))
 	}
+	// Read private key from disk
 	var keyringFileBuffer *os.File
 	keyringFileBuffer, err = os.Open(config.GetConfig().PrivateKey)
 	if err != nil {
@@ -95,10 +152,13 @@ func createPrivKey() error {
 	}
 	defer keyringFileBuffer.Close()
 
+	// Read key int var
 	privateKeyEntityList, err = openpgp.ReadArmoredKeyRing(keyringFileBuffer)
 
 	entity := privateKeyEntityList[0]
 	passphraseByte := []byte(passphrase)
+
+	// Decrypt private key with password
 	if entity.PrivateKey.Encrypted {
 		if err = entity.PrivateKey.Decrypt(passphraseByte); err != nil {
 			return err
@@ -115,10 +175,12 @@ func createPrivKey() error {
 	return err
 }
 
+// Decrypts an unarmored base64 message
 func Decrypt(base64msg string) (*openpgp.MessageDetails, error) {
 
 	var err error
 
+	// Turn message into []byte
 	messageByteArr, err := base64.StdEncoding.DecodeString(base64msg)
 	if err != nil {
 		return nil, err
@@ -130,9 +192,43 @@ func Decrypt(base64msg string) (*openpgp.MessageDetails, error) {
 		createPrivKey()
 	}
 
+	// Decrypts message with private key and buffer of []byte of message
 	md, err := openpgp.ReadMessage(buf, privateKeyEntityList, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 	return md, nil
+}
+
+func DecryptMessage(base64msg string) (*openpgp.MessageDetails, *common.Message, error) {
+	var err error
+
+	// Turn message into []byte
+	messageByteArr, err := base64.StdEncoding.DecodeString(base64msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	decBuf := bytes.NewBuffer(messageByteArr)
+
+	if privateKeyEntityList == nil {
+		createPrivKey()
+	}
+
+	// Decrypts message with private key and buffer of []byte of message
+	md, err := openpgp.ReadMessage(decBuf, privateKeyEntityList, nil, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dec := gob.NewDecoder(md.UnverifiedBody)
+
+	msg := common.Message{}
+	err = dec.Decode(&msg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return md, &msg, nil
+
 }

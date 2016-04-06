@@ -17,7 +17,6 @@ import (
 )
 
 func main() {
-
 	// Defining cli params for app
 	app := cli.NewApp()
 	app.Name = "ChatLab"
@@ -47,6 +46,10 @@ func main() {
 		cli.BoolFlag{
 			Name:  "verbose",
 			Usage: "Enables verbosity",
+		},
+		cli.BoolFlag{
+			Name:  "relay, r",
+			Usage: "Enables relay mode",
 		},
 	}
 	app.UsageText = "chat [arguments...]"
@@ -87,7 +90,9 @@ func runApp(c *cli.Context) {
 	fmt.Println("Broadcasting on: " + ip)
 
 	// Chooses which UI to use
-	if c.Bool("gui") {
+	if c.Bool("relay") {
+		chat.SelfNode.IsRelay = true
+	} else if c.Bool("gui") {
 		ui.NewGUI()
 	} else if !c.Bool("nocli") {
 		err = ui.NewCLI()
@@ -95,6 +100,8 @@ func runApp(c *cli.Context) {
 			panic(err)
 		}
 	}
+
+	chat.SelfNode.Username = config.GetConfig().Username
 
 	// Sets verbosity
 	logger.Verbose = c.Bool("verbose")

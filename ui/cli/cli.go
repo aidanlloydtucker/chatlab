@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
+	"reflect"
 	"strings"
 
 	"gopkg.in/readline.v1"
@@ -75,6 +77,47 @@ func StartCLI() {
 	// Assign logger variable to a new logger tied to STDERR
 	logger = log.New(rl.Stderr(), "", 0)
 
+	// Check for username
+	ok, err := common.DoesUserExist(config.GetConfig().Username)
+	if err != nil {
+		ok = false
+	}
+	if config.GetConfig().Username == "" || !ok {
+		logger.Println("It seems you are missing your username. Please type in the file location")
+		rl.SetPrompt("Username: ")
+		un, err := rl.Readline()
+		if err != nil {
+			panic(err)
+		}
+		config.GetConfig().Username = un
+	}
+
+	// Check for private key
+	if _, err := os.Stat(config.GetConfig().PrivateKey); os.IsNotExist(err) {
+		logger.Println("It seems you are missing your private key. Please type in the file location")
+		rl.SetPrompt("Private Key: ")
+		pk, err := rl.Readline()
+		if err != nil {
+			panic(err)
+		}
+		config.GetConfig().PrivateKey = pk
+	}
+
+	// Check for passphrase
+	if _, err := os.Stat(config.GetConfig().Passphrase); os.IsNotExist(err) {
+		logger.Println("It seems you are missing your passphrase for your private key. Please type in the file location")
+		rl.SetPrompt("Passphrase File: ")
+		pf, err := rl.Readline()
+		if err != nil {
+			panic(err)
+		}
+		config.GetConfig().Passphrase = pf
+	}
+
+	if config.GetConfig().FirstTime {
+		config.GetConfig().FirstTime = false
+	}
+
 	// Set prompt
 	rl.SetPrompt("> ")
 
@@ -116,9 +159,9 @@ func lineHandler(line string) {
 		noMatches := true
 		// Checks if there is a regex match
 		for _, cmd := range commandArr {
-			if cmd.regex.MatchString(line) {
+			if cmd.Regex.MatchString(line) {
 				// If there is a match, run a callback
-				cmd.callback(line, cmd.regex.FindStringSubmatch(line)[1:])
+				cmd.Callback(line, cmd.Regex.FindStringSubmatch(line)[1:])
 				noMatches = false
 			}
 		}
@@ -140,22 +183,28 @@ func lineHandler(line string) {
 	}
 }
 
+// Sets the chat function for sending message
 func SetSendMessage(f common.SendMessageFunc) {
 	sendMsgFunc = f
 }
 
+// Sets the chat function for creating connection
 func SetCreateConn(f common.CreateConnFunc) {
 	createConnFunc = f
 }
 
+// Quits CLI
 func QuitCLI() {
 	logger.Println(styles["notification"]("Quitting"))
 }
 
+// Formats and adds message to logger
 func AddMessage(msg common.Message) {
+	// Message has to be to you
 	if !msg.Decrypted || msg.Err != nil {
 		return
 	}
+	// If it is a group, make it look different
 	var strMsg string
 	if len(msg.ToUsers) > 1 {
 		strMsg += styles["group"]("(" + msg.ChatName + ") ")
@@ -164,17 +213,26 @@ func AddMessage(msg common.Message) {
 	logger.Println(strMsg)
 }
 
+// Adds a command to logger
 func AddCommand(msg common.Message) {
 	logger.Println(styles["command"](styles["username"](msg.Username+":") + " " + msg.Message))
 }
 
+// Removes user from usermap
 func RemoveUser(user string) {
+	// Go through all keys in chatMap
 	for i := range chatMap {
+		// For each key, see if the user is in it
 		for j, val := range chatMap[i] {
+			// If the user is in it, remove that user from the array
 			if val == user {
 				chatMap[i] = chatMap[i][:j+copy(chatMap[i][j:], chatMap[i][j+1:])]
 				break
 			}
+		}
+		// Check for empty arrays and delete them
+		if len(chatMap[i]) == 0 {
+			delete(chatMap, i)
 		}
 	}
 	if user == currentChat {
@@ -183,8 +241,13 @@ func RemoveUser(user string) {
 	logger.Println(styles["notification"]("Removed User: " + user))
 }
 
+// Adds group to chatMap
 func AddGroup(groupName string, users []string) {
-	if chatMap[groupName] != nil {
+	_, ok := chatMap[groupName]
+	if ok && reflect.DeepEqual(chatMap[groupName], users) {
+		return
+	}
+	if ok {
 		logger.Println(styles["notification"]("Updated Group: '" + groupName + "' with the users: " + strings.Join(users, ", ")))
 	} else {
 		logger.Println(styles["notification"]("New Group: '" + groupName + "' with the users: " + strings.Join(users, ", ")))
@@ -195,6 +258,7 @@ func AddGroup(groupName string, users []string) {
 	}
 }
 
+// Adds user to chatMap
 func AddUser(user string) {
 	chatMap[user] = []string{user}
 	if currentChat == "" {

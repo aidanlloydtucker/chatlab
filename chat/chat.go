@@ -1,17 +1,13 @@
 package chat
 
 import (
-	"bufio"
 	"encoding/gob"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"strconv"
-	"strings"
 	"sync"
 
 	"github.com/billybobjoeaglt/chatlab/common"
-	"github.com/billybobjoeaglt/chatlab/config"
 	"github.com/billybobjoeaglt/chatlab/crypt"
 	"github.com/billybobjoeaglt/chatlab/logger"
 	"github.com/billybobjoeaglt/chatlab/ui"
@@ -23,11 +19,17 @@ var peers []Peer
 var peersLock = &sync.Mutex{}
 var messagesReceivedAlready = make(map[string]bool)
 var messagesReceivedAlreadyLock = &sync.Mutex{}
+var SelfNode = Node{}
 
 type EncyptedMessage struct {
-	UsersTo         []string
+	//UsersTo         []string
 	EncyptedMessage string
-	ChatName        string
+	//ChatName        string
+}
+
+type Node struct {
+	Username string
+	IsRelay  bool
 }
 
 type Peer struct {
@@ -56,11 +58,11 @@ func CreateConnection(ip string) {
 	}()
 }
 func BroadcastMessage(msg common.Message) {
-	encrypted, err := crypt.Encrypt(msg.Message, msg.ToUsers)
+	encrypted, err := crypt.EncryptMessage(msg)
 	if err != nil {
 		panic(err)
 	}
-	encMsg := EncyptedMessage{UsersTo: msg.ToUsers, EncyptedMessage: encrypted, ChatName: msg.ChatName}
+	encMsg := EncyptedMessage{EncyptedMessage: encrypted}
 	broadcastEncryptedMessage(encMsg)
 }
 func broadcastEncryptedMessage(encMsg EncyptedMessage) {
@@ -96,33 +98,18 @@ func onMessageReceived(encMsg EncyptedMessage, peerFrom Peer) {
 	}()
 }
 func processMessage(encMsg EncyptedMessage, messageChannel chan common.Message, peerFrom Peer) {
-	msg := common.NewMessage()
+
+	md, msg, err := crypt.DecryptMessage(encMsg.EncyptedMessage)
+	if err != nil {
+		return
+	}
 
 	defer func() { messageChannel <- *msg }()
 
-	msg.ChatName = encMsg.ChatName
-	msg.Username = peerFrom.username
-	msg.ToUsers = encMsg.UsersTo
-	shouldDecrypt := false
-	for _, toUser := range msg.ToUsers {
-		if toUser == config.GetConfig().Username {
-			shouldDecrypt = true
-			break
-		}
-	}
-	if !shouldDecrypt {
-		msg.Decrypted = false
-		return
-	}
 	if len(msg.ToUsers) > 1 {
-		ui.AddGroup(encMsg.ChatName, msg.ToUsers)
+		ui.AddGroup(msg.ChatName, msg.ToUsers)
 	}
-	md, err := crypt.Decrypt(encMsg.EncyptedMessage)
-	if err != nil {
-		msg.Decrypted = false
-		msg.Err = err
-		return
-	}
+
 	if md.SignedBy != nil && md.SignedBy.Entity != nil && md.SignedBy.Entity.Identities != nil {
 		for k := range md.SignedBy.Entity.Identities {
 			/*fmt.Println("Name: " + md.SignedBy.Entity.Identities[k].UserId.Name)
@@ -135,31 +122,31 @@ func processMessage(encMsg EncyptedMessage, messageChannel chan common.Message, 
 			break
 		}
 	}
-
-	bytes, err := ioutil.ReadAll(md.UnverifiedBody)
-	if err != nil {
-		msg.Err = err
-		return
-	}
-
-	msg.Message = string(bytes)
 }
 
 func handleConn(conn net.Conn) {
 	if logger.Verbose {
 		fmt.Println("CONNECTION BABE. Sending our name")
 	}
-	conn.Write([]byte(config.GetConfig().Username + "\n"))
-	username, err := bufio.NewReader(conn).ReadString('\n')
+	encoder := gob.NewEncoder(conn)
+	decoder := gob.NewDecoder(conn)
+
+	err := encoder.Encode(SelfNode)
 	if err != nil {
 		return
 	}
-	username = strings.TrimSpace(username)
-	if logger.Verbose {
-		fmt.Println("Received username: " + username)
+
+	node := Node{}
+	err = decoder.Decode(&node)
+	if err != nil {
+		return
 	}
+	if logger.Verbose {
+		fmt.Println("Received username:", node.Username, "Relay:", node.IsRelay)
+	}
+
 	//here make sure that username is valid
-	peer := Peer{conn: conn, username: username, encoder: gob.NewEncoder(conn), decoder: gob.NewDecoder(conn)}
+	peer := Peer{conn: conn, username: node.Username, encoder: encoder, decoder: decoder}
 	peersLock.Lock()
 	if peerWithName(peer.username) == -1 {
 		peers = append(peers, peer)
