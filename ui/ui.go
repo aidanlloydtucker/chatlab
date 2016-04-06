@@ -91,3 +91,9 @@ func RemoveUser(user string) {
 		cli.RemoveUser(user)
 	}
 }
+func AddGroup(groupName string, users []string) {
+	switch uiType {
+	case 1:
+		cli.AddGroup(groupName, users)
+	}
+}

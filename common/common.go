@@ -7,6 +7,7 @@ type Message struct {
 	Message   string
 	Fullname  string
 	ToUsers   []string
+	ChatName  string
 }
 
 func NewMessage() *Message {
@@ -23,3 +24,5 @@ type SendMessageFunc func(Message)
 type CreateConnFunc func(string)
 
 var Done = make(chan bool, 1)
+
+var DefaultPort = 21991

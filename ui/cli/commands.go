@@ -1,6 +1,13 @@
 package cli
 
-import "regexp"
+import (
+	"reflect"
+	"regexp"
+	"strconv"
+	"strings"
+
+	"github.com/billybobjoeaglt/chatlab/common"
+)
 
 type CommandCallback func(string, []string)
 
@@ -28,7 +35,7 @@ var commandArr = []Command{
 			if args[1] != "" {
 				ip += args[1]
 			} else {
-				ip += "8080"
+				ip += strconv.Itoa(common.DefaultPort)
 			}
 			logger.Println("Connecting to: " + ip)
 			createConnFunc(ip)
@@ -46,7 +53,12 @@ var commandArr = []Command{
 			logger.Println("--- CHATS ---")
 			for name, chat := range chatMap {
 				if len(chat) > 0 {
-					logger.Println(name)
+					var printStr string
+					printStr += "• " + name
+					if len(chat) > 1 {
+						printStr += " " + styles["group"]("(group)")
+					}
+					logger.Println(printStr)
 				}
 			}
 		},
@@ -60,7 +72,12 @@ var commandArr = []Command{
 			"/current",
 		},
 		callback: func(line string, args []string) {
-			logger.Println("Current Chat:", currentChat)
+			var printString string
+			printString += "Current Chat: " + currentChat + "\n"
+			if currentChat != "" {
+				printString += "Users: " + strings.Join(chatMap[currentChat], ", ")
+			}
+			logger.Println(printString)
 		},
 	},
 	Command{
@@ -87,28 +104,33 @@ var commandArr = []Command{
 			}
 		},
 	},
-	/*Command{
-		regex:   regexp.MustCompile(`\/group (.+)`),
+	Command{
+		regex:   regexp.MustCompile(`\/group ([^ ]+) (.+)`),
 		command: "group",
 		desc:    "creates a group",
-		args:    "/group [name] [users, here]",
+		args:    "/group [name] [users,here]",
 		example: []string{
 			"/chat slaidan_lt, leijurv",
 			"/chat leijurv",
 		},
 		callback: func(line string, args []string) {
-			groupName := args[0]
-			hasChat := false
-			for i, val := range chat {
-				if val == chat {
-					hasChat = true
-					logger.Println("Connecting to chat", chat)
-					currentChat = i
+			groupName := strings.TrimSpace(args[0])
+			usersArr := strings.Split(args[1], ",")
+			for i := range usersArr {
+				usersArr[i] = strings.TrimSpace(usersArr[i])
+			}
+			for name, arr := range chatMap {
+				if name == groupName {
+					logger.Println("Error: Chat Already Exists by That Name")
+					return
+				}
+				if reflect.DeepEqual(usersArr, arr) {
+					logger.Println("Error: Chat With the Same Users Already Exists")
+					return
 				}
 			}
-			if !hasChat {
-				logger.Println("Error: Missing Chat")
-			}
+			AddGroup(groupName, usersArr)
+			currentChat = groupName
 		},
-	},*/
+	},
 }

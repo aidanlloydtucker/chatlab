@@ -2,6 +2,7 @@ package chat
 
 import (
 	"bufio"
+	"encoding/gob"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -23,9 +24,17 @@ var peersLock = &sync.Mutex{}
 var messagesReceivedAlready = make(map[string]bool)
 var messagesReceivedAlreadyLock = &sync.Mutex{}
 
+type EncyptedMessage struct {
+	UsersTo         []string
+	EncyptedMessage string
+	ChatName        string
+}
+
 type Peer struct {
 	conn     net.Conn
 	username string
+	encoder  *gob.Encoder
+	decoder  *gob.Decoder
 }
 
 func GetOutputChannel() chan chan string {
@@ -51,23 +60,24 @@ func BroadcastMessage(msg common.Message) {
 	if err != nil {
 		panic(err)
 	}
-	broadcastEncryptedMessage(encrypted)
+	encMsg := EncyptedMessage{UsersTo: msg.ToUsers, EncyptedMessage: encrypted, ChatName: msg.ChatName}
+	broadcastEncryptedMessage(encMsg)
 }
-func broadcastEncryptedMessage(encrypted string) {
+func broadcastEncryptedMessage(encMsg EncyptedMessage) {
 	messagesReceivedAlreadyLock.Lock()
-	messagesReceivedAlready[encrypted] = true
+	messagesReceivedAlready[encMsg.EncyptedMessage] = true
 	messagesReceivedAlreadyLock.Unlock()
 	tmpCopy := peers
 	for i := range tmpCopy {
 		if logger.Verbose {
 			fmt.Println("Sending to " + tmpCopy[i].username)
 		}
-		tmpCopy[i].conn.Write([]byte(encrypted + "\n"))
+		tmpCopy[i].encoder.Encode(encMsg)
 	}
 }
-func onMessageReceived(message string, peerFrom Peer) {
+func onMessageReceived(encMsg EncyptedMessage, peerFrom Peer) {
 	messagesReceivedAlreadyLock.Lock()
-	_, found := messagesReceivedAlready[message]
+	_, found := messagesReceivedAlready[encMsg.EncyptedMessage]
 	if found {
 		if logger.Verbose {
 			fmt.Println("Lol wait. " + peerFrom.username + " sent us something we already has. Ignoring...")
@@ -75,23 +85,39 @@ func onMessageReceived(message string, peerFrom Peer) {
 		messagesReceivedAlreadyLock.Unlock()
 		return
 	}
-	messagesReceivedAlready[message] = true
+	messagesReceivedAlready[encMsg.EncyptedMessage] = true
 	messagesReceivedAlreadyLock.Unlock()
 	//messageChannel := make(chan string, 100)
 	//outputChannel <- messageChannel
-	broadcastEncryptedMessage(message)
+	broadcastEncryptedMessage(encMsg)
 	go func() {
 		//defer close(messageChannel)
-		processMessage(message, msgChan, peerFrom)
+		processMessage(encMsg, msgChan, peerFrom)
 	}()
 }
-func processMessage(message string, messageChannel chan common.Message, peerFrom Peer) {
+func processMessage(encMsg EncyptedMessage, messageChannel chan common.Message, peerFrom Peer) {
 	msg := common.NewMessage()
 
 	defer func() { messageChannel <- *msg }()
 
+	msg.ChatName = encMsg.ChatName
 	msg.Username = peerFrom.username
-	md, err := crypt.Decrypt(message)
+	msg.ToUsers = encMsg.UsersTo
+	shouldDecrypt := false
+	for _, toUser := range msg.ToUsers {
+		if toUser == config.GetConfig().Username {
+			shouldDecrypt = true
+			break
+		}
+	}
+	if !shouldDecrypt {
+		msg.Decrypted = false
+		return
+	}
+	if len(msg.ToUsers) > 1 {
+		ui.AddGroup(encMsg.ChatName, msg.ToUsers)
+	}
+	md, err := crypt.Decrypt(encMsg.EncyptedMessage)
 	if err != nil {
 		msg.Decrypted = false
 		msg.Err = err
@@ -133,7 +159,7 @@ func handleConn(conn net.Conn) {
 		fmt.Println("Received username: " + username)
 	}
 	//here make sure that username is valid
-	peer := Peer{conn: conn, username: username}
+	peer := Peer{conn: conn, username: username, encoder: gob.NewEncoder(conn), decoder: gob.NewDecoder(conn)}
 	peersLock.Lock()
 	if peerWithName(peer.username) == -1 {
 		peers = append(peers, peer)
@@ -169,21 +195,20 @@ func onConnClose(peer Peer) {
 func peerListen(peer Peer) {
 	defer peer.conn.Close()
 	defer onConnClose(peer)
-	conn := peer.conn
 	username := peer.username
 	if logger.Verbose {
 		fmt.Println("Beginning to listen to " + username)
 	}
 	for {
-		message, err := bufio.NewReader(conn).ReadString('\n')
+		encMsg := &EncyptedMessage{}
+		err := peer.decoder.Decode(encMsg)
 		if err != nil {
 			if logger.Verbose {
 				fmt.Println(err.Error())
 			}
 			return
 		}
-		message = strings.TrimSpace(message)
-		onMessageReceived(message, peer)
+		onMessageReceived(*encMsg, peer)
 	}
 }
 func peerWithName(name string) int {

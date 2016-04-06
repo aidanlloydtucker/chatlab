@@ -23,6 +23,7 @@ var currentChat string
 
 var styles = map[string]func(string) string{
 	"username":     chalk.Blue.NewStyle().WithTextStyle(chalk.Bold).Style,
+	"group":        chalk.Green.NewStyle().WithTextStyle(chalk.Italic).Style,
 	"notification": chalk.White.NewStyle().WithTextStyle(chalk.Underline).Style,
 	"error":        chalk.Red.NewStyle().WithTextStyle(chalk.Underline).Style,
 }
@@ -57,8 +58,6 @@ func StartCLI() {
 	defer rl.Close()
 
 	logger = log.New(rl.Stderr(), "", 0)
-
-	logger.Println("Transmitting from: " + "SOMEWHERE")
 
 	rl.SetPrompt("> ")
 	for {
@@ -102,6 +101,7 @@ func lineHandler(line string) {
 			msg.Username = *username
 			msg.Message = line
 			msg.ToUsers = chatMap[currentChat]
+			msg.ChatName = currentChat
 			AddMessage(*msg)
 			sendMsgFunc(*msg)
 		} else {
@@ -126,7 +126,12 @@ func AddMessage(msg common.Message) {
 	if !msg.Decrypted || msg.Err != nil {
 		return
 	}
-	logger.Println(styles["username"](msg.Username+":"), msg.Message)
+	var strMsg string
+	if len(msg.ToUsers) > 1 {
+		strMsg += styles["group"]("(" + msg.ChatName + ") ")
+	}
+	strMsg += styles["username"](msg.Username+":") + " " + msg.Message
+	logger.Println(strMsg)
 }
 
 func RemoveUser(user string) {
@@ -142,6 +147,18 @@ func RemoveUser(user string) {
 		currentChat = ""
 	}
 	logger.Println(styles["notification"]("Removed User: " + user))
+}
+
+func AddGroup(groupName string, users []string) {
+	if chatMap[groupName] != nil {
+		logger.Println(styles["notification"]("Updated Group: '" + groupName + "' with the users: " + strings.Join(users, ", ")))
+	} else {
+		logger.Println(styles["notification"]("New Group: '" + groupName + "' with the users: " + strings.Join(users, ", ")))
+	}
+	chatMap[groupName] = users
+	if currentChat == "" {
+		currentChat = groupName
+	}
 }
 
 func AddUser(user string) {

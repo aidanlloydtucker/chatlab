@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 
 	"github.com/billybobjoeaglt/chatlab/chat"
@@ -30,7 +32,7 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
 			Name:  "port, p",
-			Value: 8080,
+			Value: common.DefaultPort,
 			Usage: "set port of client",
 		},
 		/*cli.BoolFlag{
@@ -65,21 +67,19 @@ func runApp(c *cli.Context) {
 	go uiPrint(chat.GetMessageChannel())
 	//go printAll(chat.GetOutputChannel())
 	go chat.Listen(c.Int("port"))
-	/*go func() {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			text, _ := reader.ReadString('\n')
-			text = text[:len(text)-1]
-			if strings.Contains(text, "connect ") {
-				ip := strings.Split(text, "connect ")[1] + ":8080"
-				fmt.Println("Connecting " + ip)
-				chat.CreateConnection(ip)
-			} else {
-				fmt.Println("Sending")
-				chat.BroadcastMessage(text)
+
+	var ip string = "UNKNOWN"
+
+	addrs, err := net.InterfaceAddrs()
+	if err == nil {
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok && !ipnet.IP.IsLoopback() && ipnet.IP.To4() != nil {
+				ip = net.JoinHostPort(ipnet.IP.String(), strconv.Itoa(c.Int("port")))
 			}
 		}
-	}()*/
+	}
+
+	fmt.Println("Broadcasting on: " + ip)
 
 	if c.Bool("gui") {
 		ui.NewGUI()
