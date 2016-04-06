@@ -18,8 +18,8 @@ var logger *log.Logger
 var sendMsgFunc common.SendMessageFunc
 var createConnFunc common.CreateConnFunc
 var username *string
-var chatList []string
-var currentChat int
+var chatMap = make(map[string][]string)
+var currentChat string
 
 var styles = map[string]func(string) string{
 	"username":     chalk.Blue.NewStyle().WithTextStyle(chalk.Bold).Style,
@@ -58,6 +58,8 @@ func StartCLI() {
 
 	logger = log.New(rl.Stderr(), "", 0)
 
+	logger.Println("Transmitting from: " + "SOMEWHERE")
+
 	rl.SetPrompt("> ")
 	for {
 		line, err := rl.Readline()
@@ -95,11 +97,11 @@ func lineHandler(line string) {
 			logger.Println(styles["error"]("Error: Unknown Command"))
 		}
 	} else {
-		if sendMsgFunc != nil && len(chatList)-1 >= currentChat {
+		if sendMsgFunc != nil && chatMap[currentChat] != nil {
 			msg := common.NewMessage()
 			msg.Username = *username
 			msg.Message = line
-			msg.ToUsers = append(msg.ToUsers, chatList[currentChat])
+			msg.ToUsers = chatMap[currentChat]
 			AddMessage(*msg)
 			sendMsgFunc(*msg)
 		} else {
@@ -128,15 +130,24 @@ func AddMessage(msg common.Message) {
 }
 
 func RemoveUser(user string) {
-	for i, val := range chatList {
-		if val == user {
-			chatList = chatList[:i+copy(chatList[i:], chatList[i+1:])]
-			break
+	for i := range chatMap {
+		for j, val := range chatMap[i] {
+			if val == user {
+				chatMap[i] = chatMap[i][:j+copy(chatMap[i][j:], chatMap[i][j+1:])]
+				break
+			}
 		}
 	}
+	if user == currentChat {
+		currentChat = ""
+	}
+	logger.Println(styles["notification"]("Removed User: " + user))
 }
 
 func AddUser(user string) {
-	chatList = append(chatList, user)
+	chatMap[user] = []string{user}
+	if currentChat == "" {
+		currentChat = user
+	}
 	logger.Println(styles["notification"]("New User: " + user))
 }

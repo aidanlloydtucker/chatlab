@@ -44,8 +44,10 @@ var commandArr = []Command{
 		},
 		callback: func(line string, args []string) {
 			logger.Println("--- CHATS ---")
-			for _, chat := range chatList {
-				logger.Println(chat)
+			for name, chat := range chatMap {
+				if len(chat) > 0 {
+					logger.Println(name)
+				}
 			}
 		},
 	},
@@ -58,11 +60,7 @@ var commandArr = []Command{
 			"/current",
 		},
 		callback: func(line string, args []string) {
-			var chat string = "UNDEFINED"
-			if len(chatList)-1 >= currentChat {
-				chat = chatList[currentChat]
-			}
-			logger.Println("Current Chat:", chat)
+			logger.Println("Current Chat:", currentChat)
 		},
 	},
 	Command{
@@ -77,7 +75,31 @@ var commandArr = []Command{
 		callback: func(line string, args []string) {
 			chat := args[0]
 			hasChat := false
-			for i, val := range chatList {
+			for name := range chatMap {
+				if name == chat {
+					hasChat = true
+					logger.Println("Connecting to chat", chat)
+					currentChat = name
+				}
+			}
+			if !hasChat {
+				logger.Println("Error: Missing Chat")
+			}
+		},
+	},
+	/*Command{
+		regex:   regexp.MustCompile(`\/group (.+)`),
+		command: "group",
+		desc:    "creates a group",
+		args:    "/group [name] [users, here]",
+		example: []string{
+			"/chat slaidan_lt, leijurv",
+			"/chat leijurv",
+		},
+		callback: func(line string, args []string) {
+			groupName := args[0]
+			hasChat := false
+			for i, val := range chat {
 				if val == chat {
 					hasChat = true
 					logger.Println("Connecting to chat", chat)
@@ -88,5 +110,5 @@ var commandArr = []Command{
 				logger.Println("Error: Missing Chat")
 			}
 		},
-	},
+	},*/
 }
