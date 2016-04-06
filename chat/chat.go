@@ -2,7 +2,6 @@ package chat
 
 import (
 	"encoding/gob"
-	"fmt"
 	"net"
 	"strconv"
 	"sync"
@@ -47,12 +46,15 @@ func GetMessageChannel() chan common.Message {
 }
 
 func CreateConnection(ip string) {
+	cc := make(logger.ChanMessage)
+	logger.ConsoleChan <- cc
 	go func() {
 		conn, err := net.Dial("tcp", ip)
 		if err == nil {
-			handleConn(conn)
+			handleConn(conn, cc)
 		} else {
-			panic(err)
+			cc.AddError(err, "Could not connect")
+			close(cc)
 		}
 	}()
 }
@@ -70,9 +72,7 @@ func broadcastEncryptedMessage(encMsg EncyptedMessage) {
 	messagesReceivedAlreadyLock.Unlock()
 	tmpCopy := peers
 	for i := range tmpCopy {
-		if logger.Verbose {
-			fmt.Println("Sending to " + tmpCopy[i].Username)
-		}
+		logger.ConsoleChan.AddVerbose("Sending encrypted message to " + tmpCopy[i].Username)
 		tmpCopy[i].Encoder.Encode(encMsg)
 	}
 }
@@ -80,9 +80,7 @@ func onMessageReceived(encMsg EncyptedMessage, peerFrom Peer) {
 	messagesReceivedAlreadyLock.Lock()
 	_, found := messagesReceivedAlready[encMsg.EncyptedMessage]
 	if found {
-		if logger.Verbose {
-			fmt.Println("Lol wait. " + peerFrom.Username + " sent us something we already has. Ignoring...")
-		}
+		logger.ConsoleChan.AddVerbose("A peer (" + peerFrom.Username + ") sent us something we already have. Ignoring...")
 		messagesReceivedAlreadyLock.Unlock()
 		return
 	}
@@ -123,26 +121,26 @@ func processMessage(encMsg EncyptedMessage, messageChannel chan common.Message, 
 	}
 }
 
-func handleConn(conn net.Conn) {
-	if logger.Verbose {
-		fmt.Println("CONNECTION BABE. Sending our name")
-	}
+func handleConn(conn net.Conn, cc logger.ChanMessage) {
+	defer close(cc)
+	cc.AddVerbose("Received connection. Sending self data")
+
 	encoder := gob.NewEncoder(conn)
 	decoder := gob.NewDecoder(conn)
 
 	err := encoder.Encode(SelfNode)
 	if err != nil {
+		cc.AddError(err, "Count not encode SelfNode")
 		return
 	}
 
 	node := Node{}
 	err = decoder.Decode(&node)
 	if err != nil {
+		cc.AddError(err, "Could not decode node gob")
 		return
 	}
-	if logger.Verbose {
-		fmt.Println("Received username:", node.Username, "Relay:", node.IsRelay)
-	}
+	cc.AddVerbose("Received username: " + node.Username + " Relay: " + strconv.FormatBool(node.IsRelay))
 
 	//here make sure that username is valid
 	peer := Peer{Conn: conn, Username: node.Username, Encoder: encoder, Decoder: decoder, Node: node}
@@ -154,19 +152,32 @@ func handleConn(conn net.Conn) {
 		}
 		peersLock.Unlock()
 		go peerListen(peer)
+
+		cm := logger.ConsoleMessage{Level: logger.INFO}
+		cm.Message = "Connected to "
+		if node.IsRelay {
+			cm.Message += "Relay"
+		} else {
+			cm.Message += "Node"
+		}
+		cc <- cm
 	} else {
 		peersLock.Unlock()
 		peer.Conn.Close()
-		if logger.Verbose {
-			fmt.Println("Sadly we are already connected to " + peer.Username + ". Disconnecting")
+
+		cm := logger.ConsoleMessage{Level: logger.INFO}
+		cm.Message = "Already Connected to "
+		if node.IsRelay {
+			cm.Message += "Relay"
+		} else {
+			cm.Message += "Node"
 		}
+		cc <- cm
 	}
 }
 func onConnClose(peer Peer) {
 	//remove from list of peers, but idk how to do that in go =(
-	if logger.Verbose {
-		fmt.Println("Disconnected from " + peer.Username)
-	}
+	logger.ConsoleChan.AddVerbose("Disconnected from peer: " + peer.Username)
 	if !peer.Node.IsRelay {
 		ui.RemoveUser(peer.Username)
 	}
@@ -174,28 +185,22 @@ func onConnClose(peer Peer) {
 	index := peerWithName(peer.Username)
 	if index == -1 {
 		peersLock.Unlock()
-		if logger.Verbose {
-			fmt.Println("lol what")
-		}
+		logger.ConsoleChan.AddVerbose("Lol What? Index is -1")
 		return
 	}
 	peers = append(peers[:index], peers[index+1:]...)
 	peersLock.Unlock()
 }
+
+// XXX: For some reason logger cannot be called here without it breaking everything
 func peerListen(peer Peer) {
 	defer peer.Conn.Close()
 	defer onConnClose(peer)
-	username := peer.Username
-	if logger.Verbose {
-		fmt.Println("Beginning to listen to " + username)
-	}
+	logger.ConsoleChan.AddVerbose("Beginning to listen to " + peer.Username)
 	for {
 		encMsg := &EncyptedMessage{}
 		err := peer.Decoder.Decode(encMsg)
 		if err != nil {
-			if logger.Verbose {
-				fmt.Println(err.Error())
-			}
 			return
 		}
 		onMessageReceived(*encMsg, peer)
@@ -221,6 +226,8 @@ func Listen(port int) {
 		if err != nil {
 			panic(err)
 		}
-		go handleConn(conn)
+		cc := make(logger.ChanMessage)
+		logger.ConsoleChan <- cc
+		go handleConn(conn, cc)
 	}
 }

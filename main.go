@@ -102,6 +102,7 @@ func runApp(c *cli.Context) {
 			bytes[i] = alphanum[b%byte(len(alphanum))]
 		}
 		chat.SelfNode.Username = string(bytes)
+		ui.NewRelayConsole()
 	} else if c.Bool("gui") {
 		ui.NewGUI()
 	} else if !c.Bool("nocli") {
@@ -112,7 +113,7 @@ func runApp(c *cli.Context) {
 	}
 
 	// Sets verbosity
-	logger.Verbose = c.Bool("verbose")
+	logger.IsVerbose = c.Bool("verbose")
 
 	// Gives the ui package functions to connect with the chat package
 	ui.SetSendMessage(func(msg common.Message) {

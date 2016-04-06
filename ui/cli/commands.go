@@ -37,7 +37,6 @@ var commandArr = []Command{
 			} else {
 				ip += strconv.Itoa(common.DefaultPort)
 			}
-			logger.Println("Connecting to: " + ip)
 			createConnFunc(ip)
 		},
 	},

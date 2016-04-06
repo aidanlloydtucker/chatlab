@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/config"
+	lg "github.com/billybobjoeaglt/chatlab/logger"
 	"github.com/ttacon/chalk"
 )
 
@@ -39,22 +39,34 @@ var styles = map[string]func(string) string{
 	"group":        chalk.Green.NewStyle().WithTextStyle(chalk.Italic).Style,
 	"notification": chalk.White.NewStyle().WithTextStyle(chalk.Underline).Style,
 	"error":        chalk.Red.NewStyle().WithTextStyle(chalk.Underline).Style,
+	"warning":      chalk.Yellow.NewStyle().WithTextStyle(chalk.Underline).Style,
 	"command":      chalk.Italic.NewStyle().Style,
 }
 
-// Deprecated
-func printAll(stringChanChan <-chan chan string) {
+func CLIConsole(ccChan *lg.ChanChanMessage) {
 	for {
-		strChan := <-stringChanChan
+		cc := <-*ccChan
 		for {
-			str, ok := <-strChan
+			cm, ok := <-cc
 			if ok {
-				fmt.Printf(str)
+				switch cm.Level {
+				case lg.VERBOSE:
+					if lg.IsVerbose {
+						logger.Println(cm.Message)
+					}
+				case lg.INFO:
+					logger.Println(styles["notification"]("INFO: " + cm.Message))
+				case lg.PRIORITY:
+					logger.Println(styles["notification"]("INFO: " + cm.Message))
+				case lg.WARNING:
+					logger.Println(styles["warning"]("WARNING: " + cm.Message))
+				case lg.ERROR:
+					logger.Println(styles["error"]("ERROR: " + cm.Message))
+				}
 			} else {
 				break
 			}
 		}
-		fmt.Println()
 	}
 }
 
@@ -265,4 +277,8 @@ func AddUser(user string) {
 		currentChat = user
 	}
 	logger.Println(styles["notification"]("New User: " + user))
+}
+
+func GetLogger() *log.Logger {
+	return logger
 }
