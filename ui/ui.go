@@ -5,18 +5,21 @@ import (
 
 	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/ui/cli"
-	"github.com/billybobjoeaglt/chatlab/ui/gui"
 )
 
-var uiType int // 0 is none; 1 is CLI; 2 is GUI;
+// Defines the type of ui running.
+// 0 is none; 1 is CLI; 2 is GUI;
+var uiType int
 
+// Creates new GUI
 func NewGUI() {
 	if uiType == 0 {
-		gui.StartGUI()
+		//gui.StartGUI()
 		uiType = 2
 	}
 }
 
+// Creates new CLI
 func NewCLI() error {
 	if uiType == 0 {
 		go cli.StartCLI()
@@ -25,15 +28,17 @@ func NewCLI() error {
 	return nil
 }
 
+// Sets the chat function for sending message
 func SetSendMessage(f common.SendMessageFunc) {
 	switch uiType {
 	case 1:
 		cli.SetSendMessage(f)
 	case 2:
-		gui.SetSendMessage(f)
+		//gui.SetSendMessage(f)
 	}
 }
 
+// Sets the chat function for creating connection
 func SetCreateConn(f common.CreateConnFunc) {
 	switch uiType {
 	case 1:
@@ -43,30 +48,17 @@ func SetCreateConn(f common.CreateConnFunc) {
 	}
 }
 
+// Quits UI
 func Quit() {
 	switch uiType {
 	case 1:
 		cli.QuitCLI()
 	case 2:
-		gui.QuitGUI()
+		//gui.QuitGUI()
 	}
 }
 
-/*func AddMessageChan(stringChanChan <-chan chan string) {
-	for {
-		strChan := <-stringChanChan
-		for {
-			str, ok := <-strChan
-			if ok {
-				fmt.Printf(str)
-			} else {
-				break
-			}
-		}
-		fmt.Println()
-	}
-}*/
-
+// Adds a message to UI
 func AddMessage(msg common.Message) {
 	switch uiType {
 	case 1:
@@ -77,20 +69,25 @@ func AddMessage(msg common.Message) {
 	}
 }
 
+// Adds a user to UI
 func AddUser(user string) {
 	switch uiType {
 	case 1:
 		cli.AddUser(user)
 	case 2:
-		gui.AddUser(user)
+		//gui.AddUser(user)
 	}
 }
+
+// Removes a user from UI
 func RemoveUser(user string) {
 	switch uiType {
 	case 1:
 		cli.RemoveUser(user)
 	}
 }
+
+// Adds a group to UI
 func AddGroup(groupName string, users []string) {
 	switch uiType {
 	case 1:

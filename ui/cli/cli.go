@@ -13,21 +13,34 @@ import (
 	"github.com/ttacon/chalk"
 )
 
+// The place where all the messages go
 var logger *log.Logger
 
+// Callback function for sending message
 var sendMsgFunc common.SendMessageFunc
+
+// Callback function for creating connection
 var createConnFunc common.CreateConnFunc
+
+// Username pointer
 var username *string
+
+// Map of chat name to array of users
 var chatMap = make(map[string][]string)
+
+// Current chat (index of chatMap)
 var currentChat string
 
+// Map of chalk styles
 var styles = map[string]func(string) string{
 	"username":     chalk.Blue.NewStyle().WithTextStyle(chalk.Bold).Style,
 	"group":        chalk.Green.NewStyle().WithTextStyle(chalk.Italic).Style,
 	"notification": chalk.White.NewStyle().WithTextStyle(chalk.Underline).Style,
 	"error":        chalk.Red.NewStyle().WithTextStyle(chalk.Underline).Style,
+	"command":      chalk.Italic.NewStyle().Style,
 }
 
+// Deprecated
 func printAll(stringChanChan <-chan chan string) {
 	for {
 		strChan := <-stringChanChan
@@ -43,10 +56,12 @@ func printAll(stringChanChan <-chan chan string) {
 	}
 }
 
+// Startup function
 func StartCLI() {
-
+	// Gets username pointer from config
 	username = &config.GetConfig().Username
 
+	// Creates a readline command
 	rl, err := readline.NewEx(&readline.Config{
 		UniqueEditLine:  true,
 		InterruptPrompt: "^C",
@@ -57,12 +72,17 @@ func StartCLI() {
 	}
 	defer rl.Close()
 
+	// Assign logger variable to a new logger tied to STDERR
 	logger = log.New(rl.Stderr(), "", 0)
 
+	// Set prompt
 	rl.SetPrompt("> ")
+
+	// Loop through and wait for a command
 	for {
 		line, err := rl.Readline()
 		if err != nil {
+			// If kill signal, tell main program to safe quit
 			if err == readline.ErrInterrupt {
 				common.Done <- true
 			} else if err == io.EOF {
@@ -70,24 +90,34 @@ func StartCLI() {
 			}
 			break
 		}
+		// Handle line
 		lineHandler(line)
 	}
 }
 
+// Handles line
+// Checks if it is a command (starts with "/") or a message
 func lineHandler(line string) {
+	line = strings.TrimSpace(line)
+
+	// Must not be blank
 	if line == "" {
 		return
 	}
-	line = strings.TrimSpace(line)
+
+	// If line is a command
 	if strings.HasPrefix(line, "/") {
+		// Create a message for that command
 		msg := common.NewMessage()
 		msg.Username = *username
 		msg.Message = line
-		AddMessage(*msg)
+		AddCommand(*msg)
 
 		noMatches := true
+		// Checks if there is a regex match
 		for _, cmd := range commandArr {
 			if cmd.regex.MatchString(line) {
+				// If there is a match, run a callback
 				cmd.callback(line, cmd.regex.FindStringSubmatch(line)[1:])
 				noMatches = false
 			}
@@ -132,6 +162,10 @@ func AddMessage(msg common.Message) {
 	}
 	strMsg += styles["username"](msg.Username+":") + " " + msg.Message
 	logger.Println(strMsg)
+}
+
+func AddCommand(msg common.Message) {
+	logger.Println(styles["command"](styles["username"](msg.Username+":") + " " + msg.Message))
 }
 
 func RemoveUser(user string) {

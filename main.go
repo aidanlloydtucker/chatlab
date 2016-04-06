@@ -18,6 +18,7 @@ import (
 
 func main() {
 
+	// Defining cli params for app
 	app := cli.NewApp()
 	app.Name = "ChatLab"
 	app.Usage = "A P2P Encrypted Chat App"
@@ -35,17 +36,13 @@ func main() {
 			Value: common.DefaultPort,
 			Usage: "set port of client",
 		},
-		/*cli.BoolFlag{
-			Name:  "nogui, n",
-			Usage: "Disables GUI",
-		},*/
 		cli.BoolFlag{
 			Name:  "gui, g",
 			Usage: "Enables GUI",
 		},
 		cli.BoolFlag{
-			Name:  "cli, c",
-			Usage: "Enables CLI",
+			Name:  "nocli, n",
+			Usage: "Disables CLI",
 		},
 		cli.BoolFlag{
 			Name:  "verbose",
@@ -53,21 +50,29 @@ func main() {
 		},
 	}
 	app.UsageText = "chat [arguments...]"
+	app.Version = "0.1.0"
 	app.Action = runApp
 	app.Run(os.Args)
 
 }
 
+// This gets called when the app is run
 func runApp(c *cli.Context) {
 	var err error
+
+	// Loads Config
 	err = config.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
+
+	// Starts a process to getting new messages and sending them to the ui
 	go uiPrint(chat.GetMessageChannel())
-	//go printAll(chat.GetOutputChannel())
+
+	// Starts a process listening on the given port
 	go chat.Listen(c.Int("port"))
 
+	// Gets IP
 	var ip string = "UNKNOWN"
 
 	addrs, err := net.InterfaceAddrs()
@@ -81,17 +86,20 @@ func runApp(c *cli.Context) {
 
 	fmt.Println("Broadcasting on: " + ip)
 
+	// Chooses which UI to use
 	if c.Bool("gui") {
 		ui.NewGUI()
-	} else if c.Bool("cli") {
+	} else if !c.Bool("nocli") {
 		err = ui.NewCLI()
 		if err != nil {
 			panic(err)
 		}
 	}
 
+	// Sets verbosity
 	logger.Verbose = c.Bool("verbose")
 
+	// Gives the ui package functions to connect with the chat package
 	ui.SetSendMessage(func(msg common.Message) {
 		go chat.BroadcastMessage(msg)
 	})
@@ -99,7 +107,7 @@ func runApp(c *cli.Context) {
 		go chat.CreateConnection(ip)
 	})
 
-	// Exit capture
+	// Safe Exit
 	sigs := make(chan os.Signal, 1)
 
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
@@ -117,20 +125,7 @@ func runApp(c *cli.Context) {
 	fmt.Println("Safe Exited")
 }
 
-/*func printAll(stringChanChan <-chan chan string) {
-	for {
-		strChan := <-stringChanChan
-		for {
-			str, ok := <-strChan
-			if ok {
-				fmt.Printf(str)
-			} else {
-				break
-			}
-		}
-		fmt.Println()
-	}
-}*/
+// Gets new messages from a channel and gives them to the ui
 func uiPrint(msgChan <-chan common.Message) {
 	for {
 		msg, ok := <-msgChan
