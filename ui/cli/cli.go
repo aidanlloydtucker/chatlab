@@ -25,7 +25,7 @@ var sendMsgFunc common.SendMessageFunc
 var createConnFunc common.CreateConnFunc
 
 // Username pointer
-var username *string
+var selfUsername *string
 
 // Map of chat name to array of users
 var chatMap = make(map[string][]string)
@@ -61,7 +61,7 @@ func printAll(stringChanChan <-chan chan string) {
 // Startup function
 func StartCLI() {
 	// Gets username pointer from config
-	username = &config.GetConfig().Username
+	selfUsername = &config.GetConfig().Username
 
 	// Creates a readline command
 	rl, err := readline.NewEx(&readline.Config{
@@ -152,7 +152,7 @@ func lineHandler(line string) {
 	if strings.HasPrefix(line, "/") {
 		// Create a message for that command
 		msg := common.NewMessage()
-		msg.Username = *username
+		msg.Username = *selfUsername
 		msg.Message = line
 		AddCommand(*msg)
 
@@ -171,7 +171,7 @@ func lineHandler(line string) {
 	} else {
 		if sendMsgFunc != nil && chatMap[currentChat] != nil {
 			msg := common.NewMessage()
-			msg.Username = *username
+			msg.Username = *selfUsername
 			msg.Message = line
 			msg.ToUsers = chatMap[currentChat]
 			msg.ChatName = currentChat

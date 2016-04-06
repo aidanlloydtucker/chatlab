@@ -133,4 +133,38 @@ var commandArr = []Command{
 			currentChat = groupName
 		},
 	},
+	Command{
+		Regex:   regexp.MustCompile(`\/user (.+)`),
+		Command: "user",
+		Desc:    "adds a user",
+		Args:    "/user [username]",
+		Example: []string{
+			"/user slaidan_lt",
+			"/user leijurv",
+		},
+		Callback: func(line string, args []string) {
+			username := strings.TrimSpace(args[0])
+			userArr := []string{username}
+			for name, arr := range chatMap {
+				if name == username {
+					logger.Println("Error: User Already Exists by That Name")
+					return
+				}
+				if reflect.DeepEqual(userArr, arr) {
+					logger.Println("Error: Chat With the User Already Exists")
+					return
+				}
+			}
+			ok, err := common.DoesUserExist(username)
+			if err != nil {
+				logger.Println("Error:", err.Error())
+				return
+			}
+			if !ok {
+				logger.Println("Error: User Does Not Exist")
+				return
+			}
+			AddUser(username)
+		},
+	},
 }

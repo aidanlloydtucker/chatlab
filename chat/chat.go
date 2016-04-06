@@ -22,9 +22,7 @@ var messagesReceivedAlreadyLock = &sync.Mutex{}
 var SelfNode = Node{}
 
 type EncyptedMessage struct {
-	//UsersTo         []string
 	EncyptedMessage string
-	//ChatName        string
 }
 
 type Node struct {
@@ -33,10 +31,11 @@ type Node struct {
 }
 
 type Peer struct {
-	conn     net.Conn
-	username string
-	encoder  *gob.Encoder
-	decoder  *gob.Decoder
+	Conn     net.Conn
+	Username string
+	Encoder  *gob.Encoder
+	Decoder  *gob.Decoder
+	Node     Node
 }
 
 func GetOutputChannel() chan chan string {
@@ -72,9 +71,9 @@ func broadcastEncryptedMessage(encMsg EncyptedMessage) {
 	tmpCopy := peers
 	for i := range tmpCopy {
 		if logger.Verbose {
-			fmt.Println("Sending to " + tmpCopy[i].username)
+			fmt.Println("Sending to " + tmpCopy[i].Username)
 		}
-		tmpCopy[i].encoder.Encode(encMsg)
+		tmpCopy[i].Encoder.Encode(encMsg)
 	}
 }
 func onMessageReceived(encMsg EncyptedMessage, peerFrom Peer) {
@@ -82,7 +81,7 @@ func onMessageReceived(encMsg EncyptedMessage, peerFrom Peer) {
 	_, found := messagesReceivedAlready[encMsg.EncyptedMessage]
 	if found {
 		if logger.Verbose {
-			fmt.Println("Lol wait. " + peerFrom.username + " sent us something we already has. Ignoring...")
+			fmt.Println("Lol wait. " + peerFrom.Username + " sent us something we already has. Ignoring...")
 		}
 		messagesReceivedAlreadyLock.Unlock()
 		return
@@ -146,29 +145,33 @@ func handleConn(conn net.Conn) {
 	}
 
 	//here make sure that username is valid
-	peer := Peer{conn: conn, username: node.Username, encoder: encoder, decoder: decoder}
+	peer := Peer{Conn: conn, Username: node.Username, Encoder: encoder, Decoder: decoder, Node: node}
 	peersLock.Lock()
-	if peerWithName(peer.username) == -1 {
+	if peerWithName(peer.Username) == -1 {
 		peers = append(peers, peer)
-		ui.AddUser(peer.username)
+		if !peer.Node.IsRelay {
+			ui.AddUser(peer.Username)
+		}
 		peersLock.Unlock()
 		go peerListen(peer)
 	} else {
 		peersLock.Unlock()
-		peer.conn.Close()
+		peer.Conn.Close()
 		if logger.Verbose {
-			fmt.Println("Sadly we are already connected to " + peer.username + ". Disconnecting")
+			fmt.Println("Sadly we are already connected to " + peer.Username + ". Disconnecting")
 		}
 	}
 }
 func onConnClose(peer Peer) {
 	//remove from list of peers, but idk how to do that in go =(
 	if logger.Verbose {
-		fmt.Println("Disconnected from " + peer.username)
+		fmt.Println("Disconnected from " + peer.Username)
 	}
-	ui.RemoveUser(peer.username)
+	if !peer.Node.IsRelay {
+		ui.RemoveUser(peer.Username)
+	}
 	peersLock.Lock()
-	index := peerWithName(peer.username)
+	index := peerWithName(peer.Username)
 	if index == -1 {
 		peersLock.Unlock()
 		if logger.Verbose {
@@ -180,15 +183,15 @@ func onConnClose(peer Peer) {
 	peersLock.Unlock()
 }
 func peerListen(peer Peer) {
-	defer peer.conn.Close()
+	defer peer.Conn.Close()
 	defer onConnClose(peer)
-	username := peer.username
+	username := peer.Username
 	if logger.Verbose {
 		fmt.Println("Beginning to listen to " + username)
 	}
 	for {
 		encMsg := &EncyptedMessage{}
-		err := peer.decoder.Decode(encMsg)
+		err := peer.Decoder.Decode(encMsg)
 		if err != nil {
 			if logger.Verbose {
 				fmt.Println(err.Error())
@@ -200,12 +203,13 @@ func peerListen(peer Peer) {
 }
 func peerWithName(name string) int {
 	for i := 0; i < len(peers); i++ {
-		if peers[i].username == name {
+		if peers[i].Username == name {
 			return i
 		}
 	}
 	return -1
 }
+
 func Listen(port int) {
 	ln, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {

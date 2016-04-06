@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
 	"net"
 	"os"
@@ -53,7 +54,7 @@ func main() {
 		},
 	}
 	app.UsageText = "chat [arguments...]"
-	app.Version = "0.1.0"
+	app.Version = "0.2.0"
 	app.Action = runApp
 	app.Run(os.Args)
 
@@ -89,9 +90,18 @@ func runApp(c *cli.Context) {
 
 	fmt.Println("Broadcasting on: " + ip)
 
+	chat.SelfNode.Username = config.GetConfig().Username
+
 	// Chooses which UI to use
 	if c.Bool("relay") {
 		chat.SelfNode.IsRelay = true
+		const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+		var bytes = make([]byte, 15)
+		rand.Read(bytes)
+		for i, b := range bytes {
+			bytes[i] = alphanum[b%byte(len(alphanum))]
+		}
+		chat.SelfNode.Username = string(bytes)
 	} else if c.Bool("gui") {
 		ui.NewGUI()
 	} else if !c.Bool("nocli") {
@@ -100,8 +110,6 @@ func runApp(c *cli.Context) {
 			panic(err)
 		}
 	}
-
-	chat.SelfNode.Username = config.GetConfig().Username
 
 	// Sets verbosity
 	logger.Verbose = c.Bool("verbose")

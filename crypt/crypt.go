@@ -80,6 +80,7 @@ func Encrypt(message string, users []string) (string, error) {
 	return base64Enc, nil
 }
 
+// Encrypts a message struct using the gob protocol
 func EncryptMessage(msg common.Message) (string, error) {
 	var gobBuf bytes.Buffer
 	enc := gob.NewEncoder(&gobBuf) // Will write to buf.
@@ -200,6 +201,7 @@ func Decrypt(base64msg string) (*openpgp.MessageDetails, error) {
 	return md, nil
 }
 
+// Decrypts an EncryptedMessage using the gob protocol
 func DecryptMessage(base64msg string) (*openpgp.MessageDetails, *common.Message, error) {
 	var err error
 
