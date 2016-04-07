@@ -30,3 +30,4 @@ config.json
 chatlab
 glade.ui
 .DS_Store
+node_modules/

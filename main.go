@@ -39,10 +39,6 @@ func main() {
 			Usage: "set port of client",
 		},
 		cli.BoolFlag{
-			Name:  "gui, g",
-			Usage: "Enables GUI",
-		},
-		cli.BoolFlag{
 			Name:  "nocli, n",
 			Usage: "Disables CLI",
 		},
@@ -122,8 +118,6 @@ func runApp(c *cli.Context) {
 		}
 		chat.SelfNode.Username = string(bytes)
 		ui.NewRelayConsole()
-	} else if c.Bool("gui") {
-		ui.NewGUI()
 	} else if !c.Bool("nocli") {
 		err = ui.NewCLI()
 		if err != nil {

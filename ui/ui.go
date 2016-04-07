@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/billybobjoeaglt/chatlab/common"
@@ -45,14 +44,6 @@ func NewRelayConsole() {
 	go RelayConsole(&logger.ConsoleChan)
 }
 
-// Creates new GUI
-func NewGUI() {
-	if uiType == 0 {
-		//gui.StartGUI()
-		uiType = 2
-	}
-}
-
 // Creates new CLI
 func NewCLI() error {
 	if uiType == 0 {
@@ -79,7 +70,7 @@ func SetCreateConn(f common.CreateConnFunc) {
 	case 1:
 		cli.SetCreateConn(f)
 	case 2:
-		//gui.SetSendMessage(f)
+		//gui.SetCreateConn(f)
 	}
 }
 
@@ -99,8 +90,8 @@ func AddMessage(msg common.Message) {
 	case 1:
 		cli.AddMessage(msg)
 	case 2:
-		//gui.AddMessage(user, message)
-		fmt.Println(msg.Username + ": " + msg.Message)
+		//gui.AddMessage(msg)
+		//fmt.Println(msg.Username + ": " + msg.Message)
 	}
 }
 
