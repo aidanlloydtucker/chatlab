@@ -143,7 +143,7 @@ func StartCLI() {
 				config.GetConfig().AnsweredStorePK = true
 				break
 			} else {
-				logger.Println("Error: Input is not valid")
+				logger.Println(styles["error"]("Error: Input is not valid"))
 			}
 		}
 	}

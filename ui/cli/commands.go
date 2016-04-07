@@ -169,13 +169,13 @@ var commandArr = []Command{
 		},
 	},
 	Command{
-		Regex:   regexp.MustCompile(`\/setting ([^ ]+) (.+)`),
-		Command: "setting",
+		Regex:   regexp.MustCompile(`\/settings ([^ ]+) (.+)`),
+		Command: "settings",
 		Desc:    "changes a setting",
-		Args:    "/setting [setting to change] [value]",
+		Args:    "/settings [setting to change] [value]",
 		Example: []string{
-			"/setting key",
-			"/setting password",
+			"/settings key",
+			"/settings password",
 		},
 		Callback: func(line string, args []string) {
 			switch args[0] {
@@ -188,7 +188,7 @@ var commandArr = []Command{
 					pkfp := filepath.Join(common.ProgramDir, "private.key")
 					err := common.CopyFile(config.GetConfig().PrivateKey, pkfp)
 					if err != nil {
-						logger.Println("Error:", err.Error())
+						logger.Println(styles["error"]("Error: " + err.Error()))
 						return
 					}
 					config.GetConfig().PrivateKey = pkfp
@@ -201,7 +201,7 @@ var commandArr = []Command{
 				} else if args[1] == "N" {
 					config.GetConfig().Password = ""
 				} else {
-					logger.Println("Error: Unknown value. Answer y/N")
+					logger.Println(styles["error"]("Error: Unknown value. Answer y/N"))
 				}
 			}
 		},
