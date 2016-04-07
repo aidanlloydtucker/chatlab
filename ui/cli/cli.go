@@ -86,6 +86,7 @@ func StartCLI() {
 		UniqueEditLine:  true,
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
+		HistoryFile:     filepath.Join(common.ProgramDir, "cli-history"),
 		//AutoComplete:    completer,
 	})
 	if err != nil {
@@ -201,18 +202,21 @@ func StartCLI() {
 			break
 		}
 		// Handle line
-		lineHandler(line)
+		saveLine := lineHandler(line)
+		if saveLine {
+			rl.SaveHistory(line)
+		}
 	}
 }
 
 // Handles line
 // Checks if it is a command (starts with "/") or a message
-func lineHandler(line string) {
+func lineHandler(line string) bool {
 	line = strings.TrimSpace(line)
 
 	// Must not be blank
 	if line == "" {
-		return
+		return false
 	}
 
 	// If line is a command
@@ -246,8 +250,10 @@ func lineHandler(line string) {
 			sendMsgFunc(*msg)
 		} else {
 			logger.Println(styles["error"]("Error: No Users Connected"))
+			return false
 		}
 	}
+	return true
 }
 
 // Sets the chat function for sending message
