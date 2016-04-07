@@ -56,7 +56,7 @@ func main() {
 		},
 	}
 	app.UsageText = "chatlab [arguments...]"
-	app.Version = "0.3.4"
+	app.Version = "0.3.5"
 	app.Action = runApp
 	app.Run(os.Args)
 
@@ -83,6 +83,11 @@ func runApp(c *cli.Context) {
 		panic(err)
 	}
 
+	err = chat.LoadPeers()
+	if err != nil {
+		panic(err)
+	}
+
 	// Starts a process to getting new messages and sending them to the ui
 	go uiPrint(chat.GetMessageChannel())
 
@@ -104,6 +109,7 @@ func runApp(c *cli.Context) {
 	fmt.Println("Broadcasting on: " + ip)
 
 	chat.SelfNode.Username = config.GetConfig().Username
+	chat.SelfNode.Port = strconv.Itoa(c.Int("port"))
 
 	// Chooses which UI to use
 	if c.Bool("relay") {
@@ -133,7 +139,7 @@ func runApp(c *cli.Context) {
 		go chat.BroadcastMessage(msg)
 	})
 	ui.SetCreateConn(func(ip string) {
-		go chat.CreateConnection(ip)
+		go chat.CreateConnection(ip, false)
 	})
 
 	// Safe Exit
@@ -147,6 +153,10 @@ func runApp(c *cli.Context) {
 	}()
 	<-common.Done
 	err = config.SaveConfig()
+	if err != nil {
+		panic(err)
+	}
+	err = chat.SavePeers()
 	if err != nil {
 		panic(err)
 	}

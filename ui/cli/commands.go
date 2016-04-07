@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"net"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -33,13 +34,13 @@ var commandArr = []Command{
 			"/connect 192.160.1.24 8908",
 		},
 		Callback: func(line string, args []string) {
-			var ip = args[0] + ":"
+			var port string
 			if args[1] != "" {
-				ip += args[1]
+				port = args[1]
 			} else {
-				ip += strconv.Itoa(common.DefaultPort)
+				port = strconv.Itoa(common.DefaultPort)
 			}
-			createConnFunc(ip)
+			createConnFunc(net.JoinHostPort(args[0], port))
 		},
 	},
 	Command{

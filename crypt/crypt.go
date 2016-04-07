@@ -16,6 +16,10 @@ import (
 var privateKeyEntityList openpgp.EntityList
 var keyMap = make(map[string]*openpgp.Entity)
 
+func GetKeyMap() map[string]*openpgp.Entity {
+	return keyMap
+}
+
 func getKeyByKeybaseUsername(username string) (openpgp.EntityList, error) {
 	// Gets public key of recipient
 	resp, err := http.Get("https://keybase.io/" + username + "/key.asc")
@@ -30,6 +34,14 @@ func getKeyByKeybaseUsername(username string) (openpgp.EntityList, error) {
 		return nil, err
 	}
 	return entityList, nil
+}
+
+func AddPublicKeyToMap(username string, key string) {
+	eL, err := openpgp.ReadKeyRing(bytes.NewReader([]byte(key)))
+	if err != nil {
+		return
+	}
+	keyMap[username] = eL[0]
 }
 
 // Encrypts a message to the users

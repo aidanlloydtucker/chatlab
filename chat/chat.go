@@ -1,8 +1,12 @@
 package chat
 
 import (
+	"bytes"
 	"encoding/gob"
+	"io/ioutil"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 
@@ -27,6 +31,7 @@ type EncyptedMessage struct {
 type Node struct {
 	Username string
 	IsRelay  bool
+	Port     string
 }
 
 type Peer struct {
@@ -45,13 +50,13 @@ func GetMessageChannel() chan common.Message {
 	return msgChan
 }
 
-func CreateConnection(ip string) {
+func CreateConnection(ip string, silent bool) {
 	cc := make(logger.ChanMessage)
 	logger.ConsoleChan <- cc
 	go func() {
 		conn, err := net.Dial("tcp", ip)
 		if err == nil {
-			handleConn(conn, cc)
+			handleConn(conn, cc, silent)
 		} else {
 			cc.AddError(err, "Could not connect")
 			close(cc)
@@ -121,7 +126,7 @@ func processMessage(encMsg EncyptedMessage, messageChannel chan common.Message, 
 	}
 }
 
-func handleConn(conn net.Conn, cc logger.ChanMessage) {
+func handleConn(conn net.Conn, cc logger.ChanMessage, silent bool) {
 	defer close(cc)
 	cc.AddVerbose("Received connection. Sending self data")
 
@@ -130,14 +135,18 @@ func handleConn(conn net.Conn, cc logger.ChanMessage) {
 
 	err := encoder.Encode(SelfNode)
 	if err != nil {
-		cc.AddError(err, "Count not encode SelfNode")
+		if !silent || logger.IsVerbose {
+			cc.AddError(err, "Count not encode SelfNode")
+		}
 		return
 	}
 
 	node := Node{}
 	err = decoder.Decode(&node)
 	if err != nil {
-		cc.AddError(err, "Could not decode node gob")
+		if !silent || logger.IsVerbose {
+			cc.AddError(err, "Could not decode node gob")
+		}
 		return
 	}
 	cc.AddVerbose("Received username: " + node.Username + " Relay: " + strconv.FormatBool(node.IsRelay))
@@ -153,26 +162,30 @@ func handleConn(conn net.Conn, cc logger.ChanMessage) {
 		peersLock.Unlock()
 		go peerListen(peer)
 
-		cm := logger.ConsoleMessage{Level: logger.INFO}
-		cm.Message = "Connected to "
-		if node.IsRelay {
-			cm.Message += "Relay"
-		} else {
-			cm.Message += "Node"
+		if !silent || logger.IsVerbose {
+			cm := logger.ConsoleMessage{Level: logger.INFO}
+			cm.Message = "Connected to "
+			if node.IsRelay {
+				cm.Message += "Relay"
+			} else {
+				cm.Message += "Node"
+			}
+			cc <- cm
 		}
-		cc <- cm
 	} else {
 		peersLock.Unlock()
 		peer.Conn.Close()
 
-		cm := logger.ConsoleMessage{Level: logger.INFO}
-		cm.Message = "Already Connected to "
-		if node.IsRelay {
-			cm.Message += "Relay"
-		} else {
-			cm.Message += "Node"
+		if !silent || logger.IsVerbose {
+			cm := logger.ConsoleMessage{Level: logger.INFO}
+			cm.Message = "Already Connected to "
+			if node.IsRelay {
+				cm.Message += "Relay"
+			} else {
+				cm.Message += "Node"
+			}
+			cc <- cm
 		}
-		cc <- cm
 	}
 }
 func onConnClose(peer Peer) {
@@ -192,7 +205,6 @@ func onConnClose(peer Peer) {
 	peersLock.Unlock()
 }
 
-// XXX: For some reason logger cannot be called here without it breaking everything
 func peerListen(peer Peer) {
 	defer peer.Conn.Close()
 	defer onConnClose(peer)
@@ -215,6 +227,60 @@ func peerWithName(name string) int {
 	return -1
 }
 
+type SavedPeer struct {
+	IP       string
+	Username string
+	Key      string
+	IsRelay  bool
+}
+
+func SavePeers() error {
+	var savedPeers []SavedPeer
+	peersLock.Lock()
+	for _, peer := range peers {
+		tcpAddrIP := peer.Conn.RemoteAddr().(*net.TCPAddr).IP.String()
+		savedPeer := SavedPeer{IP: net.JoinHostPort(tcpAddrIP, peer.Node.Port), Username: peer.Username, IsRelay: peer.Node.IsRelay}
+		if _, ok := crypt.GetKeyMap()[peer.Username]; !savedPeer.IsRelay && ok {
+			pkBuf := new(bytes.Buffer)
+			crypt.GetKeyMap()[peer.Username].Serialize(pkBuf)
+			savedPeer.Key = pkBuf.String()
+		}
+		savedPeers = append(savedPeers, savedPeer)
+	}
+	peersLock.Unlock()
+
+	var gobBuf bytes.Buffer
+	enc := gob.NewEncoder(&gobBuf)
+	err := enc.Encode(savedPeers)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(common.ProgramDir, "saved-peers.gob"), gobBuf.Bytes(), 0777)
+	return err
+}
+
+func LoadPeers() error {
+	file, err := os.Open(filepath.Join(common.ProgramDir, "saved-peers.gob"))
+
+	dec := gob.NewDecoder(file)
+
+	var savedPeers []SavedPeer
+	err = dec.Decode(&savedPeers)
+	if err != nil {
+		return err
+	}
+
+	for _, savedPeer := range savedPeers {
+		go CreateConnection(savedPeer.IP, true)
+		if !savedPeer.IsRelay && savedPeer.Key != "" {
+			go crypt.AddPublicKeyToMap(savedPeer.Username, savedPeer.Key)
+		}
+	}
+
+	return nil
+}
+
 func Listen(port int) {
 	ln, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 	if err != nil {
@@ -228,6 +294,6 @@ func Listen(port int) {
 		}
 		cc := make(logger.ChanMessage)
 		logger.ConsoleChan <- cc
-		go handleConn(conn, cc)
+		go handleConn(conn, cc, false)
 	}
 }
