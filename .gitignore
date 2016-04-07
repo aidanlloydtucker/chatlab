@@ -29,3 +29,4 @@ push.sh
 config.json
 chatlab
 glade.ui
+.DS_Store

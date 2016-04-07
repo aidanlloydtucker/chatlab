@@ -1,6 +1,10 @@
 package common
 
-import "net/http"
+import (
+	"io"
+	"net/http"
+	"os"
+)
 
 type Message struct {
 	Username  string
@@ -37,4 +41,25 @@ func DoesUserExist(username string) (bool, error) {
 	defer resp.Body.Close()
 
 	return resp.StatusCode <= 300, nil
+}
+
+var ProgramDir string
+
+func CopyFile(dst, src string) error {
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	cerr := out.Close()
+	if err != nil {
+		return err
+	}
+	return cerr
 }

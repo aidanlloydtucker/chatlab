@@ -12,3 +12,4 @@
  * Save previous connections and try to connect to them on start
  * Add SSH keys option (with github connection?)
  * Connect to other peers if low connection
+ * Add auto completer for CLI commands

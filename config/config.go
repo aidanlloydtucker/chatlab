@@ -4,24 +4,34 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+
+	"github.com/billybobjoeaglt/chatlab/common"
 )
 
 var config *Config
+var configPath string
 
 type Config struct {
-	Username   string
-	PrivateKey string
-	Passphrase string
-	FirstTime  bool
+	Username       string
+	PrivateKey     string
+	AnswereStorePK bool
+	Password       string
+	ShouldSavePass bool
+	FirstTime      bool
 }
+
+var Password string
 
 // Creates a new config struct
 func MakeConfig() (*Config, error) {
 	var newConfig = &Config{
-		Username:   "",
-		PrivateKey: "./key.key",
-		Passphrase: "./pass.key",
-		FirstTime:  true,
+		Username:       "",
+		PrivateKey:     "./key.key",
+		AnswereStorePK: false,
+		Password:       "",
+		ShouldSavePass: true,
+		FirstTime:      true,
 	}
 	return newConfig, nil
 }
@@ -32,7 +42,8 @@ func GetConfig() *Config {
 
 // Checks if config is in file. If not, make one; If so, open the file.
 func LoadConfig() error {
-	if _, err := os.Stat("./config.json"); os.IsNotExist(err) {
+	configPath = filepath.Join(common.ProgramDir, "config.json")
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		var newConfig *Config
 		newConfig, err = MakeConfig()
 		if err != nil {
@@ -40,7 +51,7 @@ func LoadConfig() error {
 		}
 		config = newConfig
 	} else {
-		configFile, err := os.Open("./config.json")
+		configFile, err := os.Open(configPath)
 		if err != nil {
 			return err
 		}
@@ -62,6 +73,6 @@ func SaveConfig() error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile("./config.json", file, 0777)
+	err = ioutil.WriteFile(configPath, file, 0777)
 	return err
 }

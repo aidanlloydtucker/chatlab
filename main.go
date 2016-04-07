@@ -6,6 +6,8 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"os/user"
+	"path/filepath"
 	"strconv"
 	"syscall"
 
@@ -63,6 +65,17 @@ func main() {
 // This gets called when the app is run
 func runApp(c *cli.Context) {
 	var err error
+
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	common.ProgramDir = filepath.Join(usr.HomeDir, ".chatlab")
+
+	_, err = os.Stat(common.ProgramDir)
+	if os.IsNotExist(err) {
+		os.MkdirAll(common.ProgramDir, 0777)
+	}
 
 	// Loads Config
 	err = config.LoadConfig()

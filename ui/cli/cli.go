@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -75,11 +76,17 @@ func StartCLI() {
 	// Gets username pointer from config
 	selfUsername = &config.GetConfig().Username
 
+	/*completer := readline.NewPrefixCompleter(
+		readline.PcItem("/connect"),
+		readline.PcItem("/connect"),
+	)*/
+
 	// Creates a readline command
 	rl, err := readline.NewEx(&readline.Config{
 		UniqueEditLine:  true,
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
+		//AutoComplete:    completer,
 	})
 	if err != nil {
 		panic(err)
@@ -95,7 +102,7 @@ func StartCLI() {
 		ok = false
 	}
 	if config.GetConfig().Username == "" || !ok {
-		logger.Println("It seems you are missing your username. Please type in the file location")
+		logger.Println("It seems you are missing your username. Please type it in")
 		rl.SetPrompt("Username: ")
 		un, err := rl.Readline()
 		if err != nil {
@@ -115,15 +122,62 @@ func StartCLI() {
 		config.GetConfig().PrivateKey = pk
 	}
 
-	// Check for passphrase
-	if _, err := os.Stat(config.GetConfig().Passphrase); os.IsNotExist(err) {
-		logger.Println("It seems you are missing your passphrase for your private key. Please type in the file location")
-		rl.SetPrompt("Passphrase File: ")
-		pf, err := rl.Readline()
+	if !config.GetConfig().AnswereStorePK {
+		logger.Println("Would you like us to store your private key in our program directory?")
+		rl.SetPrompt("(y/N): ")
+		for {
+			yn, err := rl.Readline()
+			if err != nil {
+				panic(err)
+			}
+			if yn == "y" || yn == "N" {
+				if yn == "y" {
+					pkfp := filepath.Join(common.ProgramDir, "private.key")
+					err := common.CopyFile(pkfp, config.GetConfig().PrivateKey)
+					if err != nil {
+						panic(err)
+					}
+					config.GetConfig().PrivateKey = pkfp
+				}
+				config.GetConfig().AnswereStorePK = true
+				break
+			} else {
+				logger.Println("Error: Input is not valid")
+			}
+		}
+	}
+
+	// Check for password
+	if config.GetConfig().Password == "" {
+		if config.GetConfig().ShouldSavePass {
+			logger.Println("It seems you are missing your password for your private key. Please type it in")
+		}
+
+		pass, err := rl.ReadPassword("Password: ")
 		if err != nil {
 			panic(err)
 		}
-		config.GetConfig().Passphrase = pf
+		if config.GetConfig().ShouldSavePass {
+			logger.Println("Would you like us to autosave this password?")
+			rl.SetPrompt("(y/N): ")
+			for {
+				yn, err := rl.Readline()
+				if err != nil {
+					panic(err)
+				}
+				if yn == "y" || yn == "N" {
+					if yn == "y" {
+						config.GetConfig().Password = string(pass)
+					} else {
+						config.GetConfig().ShouldSavePass = false
+					}
+					config.Password = string(pass)
+					break
+				} else {
+					logger.Println("Error: Input is not valid")
+				}
+			}
+		}
 	}
 
 	if config.GetConfig().FirstTime {

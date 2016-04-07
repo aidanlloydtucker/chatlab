@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/gob"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/config"
@@ -16,7 +14,6 @@ import (
 )
 
 var privateKeyEntityList openpgp.EntityList
-var passphrase string
 var keyMap = make(map[string]*openpgp.Entity)
 
 func getKeyByKeybaseUsername(username string) (openpgp.EntityList, error) {
@@ -136,15 +133,6 @@ func EncryptMessage(msg common.Message) (string, error) {
 func createPrivKey() error {
 	var err error
 
-	// If the passphrase is blank, get it from the config
-	if passphrase == "" {
-		var pass []byte
-		pass, err = ioutil.ReadFile(config.GetConfig().Passphrase)
-		if err != nil {
-			return err
-		}
-		passphrase = strings.TrimSpace(string(pass))
-	}
 	// Read private key from disk
 	var keyringFileBuffer *os.File
 	keyringFileBuffer, err = os.Open(config.GetConfig().PrivateKey)
@@ -157,7 +145,7 @@ func createPrivKey() error {
 	privateKeyEntityList, err = openpgp.ReadArmoredKeyRing(keyringFileBuffer)
 
 	entity := privateKeyEntityList[0]
-	passphraseByte := []byte(passphrase)
+	passphraseByte := []byte(config.Password)
 
 	// Decrypt private key with password
 	if entity.PrivateKey.Encrypted {
