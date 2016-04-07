@@ -122,7 +122,7 @@ func StartCLI() {
 		config.GetConfig().PrivateKey = pk
 	}
 
-	if !config.GetConfig().AnswereStorePK {
+	if !config.GetConfig().AnsweredStorePK {
 		logger.Println("Would you like us to store your private key in our program directory?")
 		rl.SetPrompt("(y/N): ")
 		for {
@@ -133,13 +133,14 @@ func StartCLI() {
 			if yn == "y" || yn == "N" {
 				if yn == "y" {
 					pkfp := filepath.Join(common.ProgramDir, "private.key")
-					err := common.CopyFile(pkfp, config.GetConfig().PrivateKey)
+					err := common.CopyFile(config.GetConfig().PrivateKey, pkfp)
 					if err != nil {
-						panic(err)
+						logger.Println("Error:", err.Error())
+						return
 					}
 					config.GetConfig().PrivateKey = pkfp
 				}
-				config.GetConfig().AnswereStorePK = true
+				config.GetConfig().AnsweredStorePK = true
 				break
 			} else {
 				logger.Println("Error: Input is not valid")

@@ -13,12 +13,12 @@ var config *Config
 var configPath string
 
 type Config struct {
-	Username       string
-	PrivateKey     string
-	AnswereStorePK bool
-	Password       string
-	ShouldSavePass bool
-	FirstTime      bool
+	Username        string
+	PrivateKey      string
+	AnsweredStorePK bool
+	Password        string
+	ShouldSavePass  bool
+	FirstTime       bool
 }
 
 var Password string
@@ -26,12 +26,12 @@ var Password string
 // Creates a new config struct
 func MakeConfig() (*Config, error) {
 	var newConfig = &Config{
-		Username:       "",
-		PrivateKey:     "./key.key",
-		AnswereStorePK: false,
-		Password:       "",
-		ShouldSavePass: true,
-		FirstTime:      true,
+		Username:        "",
+		PrivateKey:      "./key.key",
+		AnsweredStorePK: false,
+		Password:        "",
+		ShouldSavePass:  true,
+		FirstTime:       true,
 	}
 	return newConfig, nil
 }
@@ -65,6 +65,9 @@ func LoadConfig() error {
 			return err
 		}
 	}
+
+	Password = config.Password
+
 	return nil
 }
 

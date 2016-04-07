@@ -1,12 +1,14 @@
 package cli
 
 import (
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/billybobjoeaglt/chatlab/common"
+	"github.com/billybobjoeaglt/chatlab/config"
 )
 
 type CommandCallback func(line string, args []string)
@@ -164,6 +166,44 @@ var commandArr = []Command{
 				return
 			}
 			AddUser(username)
+		},
+	},
+	Command{
+		Regex:   regexp.MustCompile(`\/setting ([^ ]+) (.+)`),
+		Command: "setting",
+		Desc:    "changes a setting",
+		Args:    "/setting [setting to change] [value]",
+		Example: []string{
+			"/setting key",
+			"/setting password",
+		},
+		Callback: func(line string, args []string) {
+			switch args[0] {
+			case "username":
+				config.GetConfig().Username = args[1]
+			case "key":
+				config.GetConfig().PrivateKey = args[1]
+			case "save-key":
+				if args[1] == "y" {
+					pkfp := filepath.Join(common.ProgramDir, "private.key")
+					err := common.CopyFile(config.GetConfig().PrivateKey, pkfp)
+					if err != nil {
+						logger.Println("Error:", err.Error())
+						return
+					}
+					config.GetConfig().PrivateKey = pkfp
+				}
+			case "password":
+				config.Password = args[1]
+			case "save-password":
+				if args[1] == "y" {
+					config.GetConfig().Password = config.Password
+				} else if args[1] == "N" {
+					config.GetConfig().Password = ""
+				} else {
+					logger.Println("Error: Unknown value. Answer y/N")
+				}
+			}
 		},
 	},
 }
