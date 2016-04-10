@@ -37,11 +37,13 @@ func CUIConsole(ccChan *logger.ChanChanMessage) {
 				msg.Message = msgText
 				if logger.IsVerbose || cm.Level != logger.VERBOSE {
 					tmp := chatMap["logs"]
-					tmp.History = append(tmp.History, Message{Message: msg, Read: false})
+					tmp.History = append(tmp.History, Message{Message: msg, Read: msg.ChatName == currentChat})
 					chatMap["logs"] = tmp
-					if uiMade {
-						reloadChatList()
+
+					if currentChat == "logs" || currentChat == "" {
+						chatTextInit += formatMsg(*msg) + "\n"
 					}
+					reloadChatList()
 				}
 			} else {
 				break

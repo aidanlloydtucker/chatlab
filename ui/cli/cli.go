@@ -96,6 +96,8 @@ func StartCLI() {
 	// Assign logger variable to a new logger tied to STDOUT
 	logger = log.New(rl.Stdout(), "", 0)
 
+	logger.Println(styles["warning"]("WARNING: This CLI has been depricated. Please use the CUI for a more stable UI."))
+
 	// Set prompt
 	rl.SetPrompt("> ")
 

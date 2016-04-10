@@ -50,6 +50,8 @@ var chatList *termui.List
 // check if us has been made
 var uiMade bool
 
+var chatTextInit string
+
 func StartCUI() {
 	addToChatMap("logs", Chat{Users: []string{"logs"}, Name: "logs"})
 	currentChat = "logs"
@@ -66,7 +68,7 @@ func StartCUI() {
 	chatInput.BorderLabel = "Message"
 	chatInput.Height = 3
 
-	chatText = termui.NewPar("")
+	chatText = termui.NewPar(chatTextInit)
 	chatText.BorderBottom = false
 	chatText.BorderLeft = false
 	chatText.BorderRight = false
@@ -122,8 +124,11 @@ func StartCUI() {
 		}
 		termui.Render(termui.Body)
 	})
-	reloadChatList()
+	if currentChat != "logs" {
+		chatText.Text = ""
+	}
 	uiMade = true
+	reloadChatList()
 	termui.Loop()
 }
 
@@ -241,9 +246,7 @@ func RemoveUser(user string) {
 		}
 		chatText.Text = str
 	}
-	if uiMade {
-		reloadChatList()
-	}
+	reloadChatList()
 }
 
 // Adds group to chatMap
@@ -266,9 +269,7 @@ func AddGroup(groupName string, users []string) {
 	if currentChat == "" || currentChat == "logs" && len(chatMapKeys) < 2 {
 		currentChat = groupName
 	}
-	if uiMade {
-		reloadChatList()
-	}
+	reloadChatList()
 }
 
 // Adds user to chatMap
@@ -277,12 +278,13 @@ func AddUser(user string) {
 	if currentChat == "" || (currentChat == "logs" && len(chatMapKeys) <= 2) {
 		currentChat = user
 	}
-	if uiMade {
-		reloadChatList()
-	}
+	reloadChatList()
 }
 
 func reloadChatList() {
+	if !uiMade {
+		return
+	}
 	var listItems []string
 	for _, key := range chatMapKeys {
 		var str string

@@ -31,7 +31,7 @@ var commandArr = []Command{
 		Args:    "/connect [IP] (port)",
 		Example: []string{
 			"/connect localhost",
-			"/connect 192.160.1.24 8908",
+			"/connect 192.160.1.24 8080",
 		},
 		Callback: func(line string, args []string) {
 			var port string

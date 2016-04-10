@@ -53,7 +53,7 @@ func main() {
 		},
 	}
 	app.UsageText = "chatlab [arguments...]"
-	app.Version = "1.0.1"
+	app.Version = "1.0.2"
 	app.Action = runApp
 	app.Run(os.Args)
 
