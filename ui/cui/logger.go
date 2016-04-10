@@ -1,6 +1,8 @@
 package cui
 
 import (
+	"strings"
+
 	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/logger"
 )
@@ -75,6 +77,11 @@ func printLn(str string) {
 		return
 	}
 	chatText.Text += str + "\n"
+	chatTextArr := strings.Split(chatText.Text, "\n")
+	if len(chatTextArr) > chatText.InnerHeight() {
+		chatTextArr = append(chatTextArr[:0], chatTextArr[1:]...)
+		chatText.Text = strings.Join(chatTextArr, "\n")
+	}
 	reloadScreen()
 }
 
