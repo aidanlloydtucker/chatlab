@@ -16,6 +16,7 @@ import (
 	"github.com/billybobjoeaglt/chatlab/config"
 	"github.com/billybobjoeaglt/chatlab/logger"
 	"github.com/billybobjoeaglt/chatlab/ui"
+	"github.com/billybobjoeaglt/chatlab/ui/startup"
 	"github.com/codegangsta/cli"
 )
 
@@ -39,7 +40,7 @@ func main() {
 			Usage: "set port of client",
 		},
 		cli.BoolFlag{
-			Name:  "nocli, n",
+			Name:  "oldcli, o",
 			Usage: "Disables CLI",
 		},
 		cli.BoolFlag{
@@ -52,7 +53,7 @@ func main() {
 		},
 	}
 	app.UsageText = "chatlab [arguments...]"
-	app.Version = "0.3.5"
+	app.Version = "1.0.0"
 	app.Action = runApp
 	app.Run(os.Args)
 
@@ -118,10 +119,18 @@ func runApp(c *cli.Context) {
 		}
 		chat.SelfNode.Username = string(bytes)
 		ui.NewRelayConsole()
-	} else if !c.Bool("nocli") {
-		err = ui.NewCLI()
-		if err != nil {
-			panic(err)
+	} else {
+		startup.RunStartup()
+		if c.Bool("oldcli") {
+			err = ui.NewCLI()
+			if err != nil {
+				panic(err)
+			}
+		} else {
+			err = ui.NewCUI()
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 

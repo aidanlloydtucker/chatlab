@@ -1,6 +1,5 @@
 # To Do
 
- * [ ] GUI
  * [x] Save connected users to file
  * [x] Save connected users' public keys to file
  * [x] Create folder ~/.chatlab/ to store all data

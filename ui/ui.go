@@ -6,6 +6,7 @@ import (
 	"github.com/billybobjoeaglt/chatlab/common"
 	"github.com/billybobjoeaglt/chatlab/logger"
 	"github.com/billybobjoeaglt/chatlab/ui/cli"
+	"github.com/billybobjoeaglt/chatlab/ui/cui"
 )
 
 // Defines the type of ui running.
@@ -54,13 +55,23 @@ func NewCLI() error {
 	return nil
 }
 
+// Creates new CUI
+func NewCUI() error {
+	if uiType == 0 {
+		go cui.StartCUI()
+		go cui.CUIConsole(&logger.ConsoleChan)
+		uiType = 2
+	}
+	return nil
+}
+
 // Sets the chat function for sending message
 func SetSendMessage(f common.SendMessageFunc) {
 	switch uiType {
 	case 1:
 		cli.SetSendMessage(f)
 	case 2:
-		//gui.SetSendMessage(f)
+		cui.SetSendMessage(f)
 	}
 }
 
@@ -70,7 +81,7 @@ func SetCreateConn(f common.CreateConnFunc) {
 	case 1:
 		cli.SetCreateConn(f)
 	case 2:
-		//gui.SetCreateConn(f)
+		cui.SetCreateConn(f)
 	}
 }
 
@@ -80,7 +91,7 @@ func Quit() {
 	case 1:
 		cli.QuitCLI()
 	case 2:
-		//gui.QuitGUI()
+		cui.QuitCUI()
 	}
 }
 
@@ -90,8 +101,7 @@ func AddMessage(msg common.Message) {
 	case 1:
 		cli.AddMessage(msg)
 	case 2:
-		//gui.AddMessage(msg)
-		//fmt.Println(msg.Username + ": " + msg.Message)
+		cui.AddMessage(msg)
 	}
 }
 
@@ -101,7 +111,7 @@ func AddUser(user string) {
 	case 1:
 		cli.AddUser(user)
 	case 2:
-		//gui.AddUser(user)
+		cui.AddUser(user)
 	}
 }
 
@@ -110,6 +120,8 @@ func RemoveUser(user string) {
 	switch uiType {
 	case 1:
 		cli.RemoveUser(user)
+	case 2:
+		cui.RemoveUser(user)
 	}
 }
 
@@ -118,5 +130,7 @@ func AddGroup(groupName string, users []string) {
 	switch uiType {
 	case 1:
 		cli.AddGroup(groupName, users)
+	case 2:
+		cui.AddGroup(groupName, users)
 	}
 }
