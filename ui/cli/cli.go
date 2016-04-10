@@ -15,6 +15,8 @@ import (
 	"github.com/ttacon/chalk"
 )
 
+// XXX: DEPRICATED
+
 // The place where all the messages go
 var logger *log.Logger
 

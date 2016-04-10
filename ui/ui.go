@@ -13,6 +13,7 @@ import (
 // 0 is none; 1 is CLI; 2 is GUI;
 var uiType int
 
+// A STDOUT console for no UI
 func RelayConsole(ccChan *logger.ChanChanMessage) {
 	for {
 		cc := <-*ccChan

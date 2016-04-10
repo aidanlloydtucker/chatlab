@@ -10,6 +10,7 @@ import (
 	"github.com/billybobjoeaglt/chatlab/common"
 )
 
+// Callback for when a command is called
 type CommandCallback func(line string, args []string)
 
 type Command struct {

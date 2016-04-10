@@ -7,6 +7,7 @@ import (
 	"github.com/billybobjoeaglt/chatlab/logger"
 )
 
+// Create a CUI Console for logging
 func CUIConsole(ccChan *logger.ChanChanMessage) {
 	for {
 		cc := <-*ccChan
@@ -39,7 +40,7 @@ func CUIConsole(ccChan *logger.ChanChanMessage) {
 				msg.Message = msgText
 				if logger.IsVerbose || cm.Level != logger.VERBOSE {
 					tmp := chatMap["logs"]
-					tmp.History = append(tmp.History, Message{Message: msg, Read: msg.ChatName == currentChat})
+					tmp.History = append(tmp.History, ChatMessage{Message: msg, Read: msg.ChatName == currentChat})
 					chatMap["logs"] = tmp
 
 					if currentChat == "logs" || currentChat == "" {
@@ -72,6 +73,7 @@ func formatMsg(msg common.Message) string {
 	return strMsg
 }
 
+// Print string with newline to chat text
 func printLn(str string) {
 	if !uiMade {
 		return

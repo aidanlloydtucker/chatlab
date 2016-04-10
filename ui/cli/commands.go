@@ -12,6 +12,8 @@ import (
 	"github.com/billybobjoeaglt/chatlab/config"
 )
 
+// XXX: DEPRICATED
+
 type CommandCallback func(line string, args []string)
 
 type Command struct {

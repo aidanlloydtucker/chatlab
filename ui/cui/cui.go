@@ -22,12 +22,13 @@ var selfUsername *string
 
 // Chat struct for chatMap
 type Chat struct {
-	History []Message
+	History []ChatMessage
 	Name    string
 	Users   []string
 }
 
-type Message struct {
+// Chat Message that extends the main message to see if user has read the message
+type ChatMessage struct {
 	*common.Message
 	Read bool
 }
@@ -50,11 +51,14 @@ var chatList *termui.List
 // check if us has been made
 var uiMade bool
 
+// To show logs before the CUI has been initalized
 var chatTextInit string
 
 func StartCUI() {
+	// Add the log 'chat' to the main list
 	addToChatMap("logs", Chat{Users: []string{"logs"}, Name: "logs"})
 	currentChat = "logs"
+
 	selfUsername = &config.GetConfig().Username
 
 	err := termui.Init()
@@ -99,6 +103,8 @@ func StartCUI() {
 	termui.Handle("/sys/kbd/C-c", func(termui.Event) {
 		common.Done <- true
 	})
+
+	// Catch the keyboard
 	termui.Handle("/sys/kbd", func(ev termui.Event) {
 		key := ev.Data.(termui.EvtKbd).KeyStr
 		switch key {
@@ -127,6 +133,7 @@ func StartCUI() {
 	if currentChat != "logs" {
 		chatText.Text = ""
 	}
+
 	uiMade = true
 	reloadChatList()
 	termui.Loop()
@@ -202,12 +209,16 @@ func AddMessage(msg common.Message) {
 	if !msg.Decrypted || msg.Err != nil {
 		return
 	}
-	// If it is a group, make it look different
+
 	strMsg := formatMsg(msg)
-	newMsg := Message{Message: &msg, Read: msg.ChatName == currentChat}
+
+	newMsg := ChatMessage{Message: &msg, Read: msg.ChatName == currentChat}
+
+	// Add this message to the history
 	tmp := chatMap[msg.ChatName]
 	tmp.History = append(chatMap[msg.ChatName].History, newMsg)
 	chatMap[msg.ChatName] = tmp
+
 	if msg.ChatName == currentChat {
 		printLn(strMsg)
 	} else {
@@ -235,6 +246,10 @@ func RemoveUser(user string) {
 			chatMapKeys = append(chatMapKeys[:i], chatMapKeys[i+1:]...)
 		}
 	}
+	// If there are no users left and the user removed is the selected user,
+	// nullify the currentChat and empty chat text.
+	// If there are users and the user removed is the selected user,
+	// go back a user and change the chat text to show that user
 	if user == currentChat && len(chatMapKeys) == 0 {
 		currentChat = ""
 		chatText.Text = ""
@@ -255,18 +270,22 @@ func AddGroup(groupName string, users []string) {
 	if ok && reflect.DeepEqual(chatMap[groupName].Users, users) {
 		return
 	}
+	// If chat already exists, notify the user that that chat has been updated
 	if ok {
 		orgMsg := common.NewMessage()
 		orgMsg.Username = *selfUsername
 		orgMsg.Message = "[INFO: Updated Group: '" + groupName + "' with the users: " + strings.Join(users, ", ") + "](fg-white,fg-underline)"
-		msg := Message{Message: orgMsg, Read: false}
+		msg := ChatMessage{Message: orgMsg, Read: false}
+
 		tmp := chatMap[groupName]
 		tmp.History = append(chatMap[groupName].History, msg)
 		chatMap[msg.ChatName] = tmp
 	} else {
 		addToChatMap(groupName, Chat{Users: users, Name: groupName})
 	}
-	if currentChat == "" || currentChat == "logs" && len(chatMapKeys) < 2 {
+	// If currentChat is null or it's logs, and logs is the only one besides
+	// the chat just created, change the current chat
+	if currentChat == "" || currentChat == "logs" && len(chatMapKeys) <= 2 {
 		currentChat = groupName
 	}
 	reloadChatList()
@@ -275,23 +294,33 @@ func AddGroup(groupName string, users []string) {
 // Adds user to chatMap
 func AddUser(user string) {
 	addToChatMap(user, Chat{Users: []string{user}, Name: user})
+
+	// If currentChat is null or it's logs, and logs is the only one besides
+	// the chat just created, change the current chat
 	if currentChat == "" || (currentChat == "logs" && len(chatMapKeys) <= 2) {
 		currentChat = user
 	}
 	reloadChatList()
 }
 
+// Reloads the list of chats
 func reloadChatList() {
 	if !uiMade {
 		return
 	}
+
 	var listItems []string
+
+	// For each chat
 	for _, key := range chatMapKeys {
-		var str string
-		str = "[" + key
+		var str string = "[" + key
+
+		// If the chat is a group, add a marker
 		if len(chatMap[key].Users) > 1 {
 			str += " (group)"
 		}
+
+		// Count how many unread messges the chat has
 		var unread int
 		for i, msg := range chatMap[key].History {
 			if !msg.Read {
@@ -302,13 +331,19 @@ func reloadChatList() {
 				}
 			}
 		}
+
+		// Mark if there are any unread messages
 		if unread > 0 {
 			str += " (" + strconv.Itoa(unread) + ")"
 		}
+
 		str += "]("
+
+		// If the chat is selected, change the styling
 		if key == currentChat {
 			str += "fg-white,bg-green"
 		}
+
 		str += ")"
 
 		listItems = append(listItems, str)

@@ -10,6 +10,7 @@ import (
 	"gopkg.in/readline.v1"
 )
 
+// Run CLI dialog that sets variables and loads files
 func RunStartup() {
 	rl, err := readline.NewEx(&readline.Config{
 		UniqueEditLine:  true,

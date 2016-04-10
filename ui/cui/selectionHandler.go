@@ -9,6 +9,7 @@ var windowMode int     // 0 = main window; 1 = commands; 2 = startup settings;
 var selectedH int = 1  // 0 = chatList; 1 = text
 var chatTextOffset int // 0 is latest message
 
+// Show what is selected
 func goLeft() {
 	if selectedH == 1 {
 		chatText.BorderFg = termui.ColorDefault
@@ -18,6 +19,7 @@ func goLeft() {
 	}
 }
 
+// Show what is selected
 func goRight() {
 	if selectedH == 0 {
 		chatText.BorderFg = termui.ColorYellow
@@ -27,13 +29,18 @@ func goRight() {
 	}
 }
 
+// If the list of chats is selected, go down a chat
+// If the chat text is selected, scroll down to the latest message
 func goDown() {
 	if selectedH == 0 {
 		index := utils.IndexOfStr(chatMapKeys, currentChat)
+
+		// If it is possible to go down a chat
 		if index != -1 && index < len(chatMapKeys)-1 {
 			currentChat = chatMapKeys[index+1]
-			var str string
 
+			// Load history with latest message a the bottom
+			var str string
 			iStart := len(chatMap[currentChat].History) - (chatText.InnerHeight() - 1)
 			if iStart < 0 {
 				iStart = 0
@@ -50,6 +57,7 @@ func goDown() {
 			iStart = 0
 		}
 		actualStart := iStart - chatTextOffset
+		// If possible, go down a message
 		if iStart > 0 && chatTextOffset > 0 {
 			chatTextOffset--
 			var str string
@@ -62,13 +70,18 @@ func goDown() {
 	}
 }
 
+// If the list of chats is selected, go up a chat
+// If the chat text is selected, scroll up to the oldest message
 func goUp() {
 	if selectedH == 0 {
 		index := utils.IndexOfStr(chatMapKeys, currentChat)
+
+		// If it is possible to go up a chat
 		if index > 0 {
 			currentChat = chatMapKeys[index-1]
-			var str string
 
+			// Load history with latest message a the bottom
+			var str string
 			iStart := len(chatMap[currentChat].History) - (chatText.InnerHeight() - 1)
 			if iStart < 0 {
 				iStart = 0
@@ -85,6 +98,7 @@ func goUp() {
 			iStart = 0
 		}
 		actualStart := iStart - chatTextOffset
+		// If possible, go up a message
 		if actualStart >= 0 && iStart > 0 {
 			chatTextOffset++
 			var str string

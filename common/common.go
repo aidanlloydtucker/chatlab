@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// Decrypted Message struct
 type Message struct {
 	Username  string
 	Decrypted bool
@@ -17,6 +18,7 @@ type Message struct {
 	ChatName  string
 }
 
+// Create a new message with defaults
 func NewMessage() *Message {
 	return &Message{
 		Username:  "",
@@ -27,14 +29,23 @@ func NewMessage() *Message {
 	}
 }
 
+// Send Message Function from UI type
 type SendMessageFunc func(Message)
+
+// Create Connection Function from UI type
 type CreateConnFunc func(string)
 
+// Make this true if you want to quit
 var Done = make(chan bool, 1)
 
 var DefaultPort = 21991
 
+// Check if user exists
+// TODO: Protect against usernames like "/" or " ", that could just go to keybase.io
 func DoesUserExist(username string) (bool, error) {
+	if username == "" {
+		return false, nil
+	}
 	resp, err := http.Get("https://keybase.io/" + username)
 	if err != nil {
 		return false, err
@@ -44,6 +55,7 @@ func DoesUserExist(username string) (bool, error) {
 	return resp.StatusCode <= 300, nil
 }
 
+// Where the default program directory is
 var ProgramDir string
 
 // NOTE: I *NEVER* copy from stack overflow

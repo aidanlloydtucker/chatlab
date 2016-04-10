@@ -13,7 +13,11 @@ import (
 	"golang.org/x/crypto/openpgp"
 )
 
+// The local private key
 var privateKeyEntityList openpgp.EntityList
+
+// Map of username to key
+// TODO: Make map key more secure than username
 var keyMap = make(map[string]*openpgp.Entity)
 
 func GetKeyMap() map[string]*openpgp.Entity {
@@ -45,6 +49,7 @@ func AddPublicKeyToMap(username string, key string) {
 }
 
 // Encrypts a message to the users
+// XXX: DEPRICATED
 func Encrypt(message string, users []string) (string, error) {
 	var entityList openpgp.EntityList
 
@@ -142,6 +147,7 @@ func EncryptMessage(msg common.Message) (string, error) {
 	return base64Enc, nil
 }
 
+// Creates the private key variable by getting it from disk
 func createPrivKey() error {
 	var err error
 
@@ -177,6 +183,7 @@ func createPrivKey() error {
 }
 
 // Decrypts an unarmored base64 message
+// XXX: DEPRICATED
 func Decrypt(base64msg string) (*openpgp.MessageDetails, error) {
 
 	var err error
@@ -201,7 +208,7 @@ func Decrypt(base64msg string) (*openpgp.MessageDetails, error) {
 	return md, nil
 }
 
-// Decrypts an EncryptedMessage using the gob protocol
+// Decrypts an Encrypted Message String using the gob protocol
 func DecryptMessage(base64msg string) (*openpgp.MessageDetails, *common.Message, error) {
 	var err error
 
