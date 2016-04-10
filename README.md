@@ -1,5 +1,7 @@
 # ChatLab
 
+A P2P encrypted chat client using [keybase.io](https://keybase.io)
+
 ## Setup
 
 ### Get Private Key from [Keybase.io](https://keybase.io)
