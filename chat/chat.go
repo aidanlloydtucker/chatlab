@@ -261,20 +261,27 @@ func SavePeers() error {
 }
 
 func LoadPeers() error {
-	file, err := os.Open(filepath.Join(common.ProgramDir, "saved-peers.gob"))
+	peerPath := filepath.Join(common.ProgramDir, "saved-peers.gob")
+	if _, err := os.Stat(peerPath); err == nil {
+		file, err := os.Open(peerPath)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 
-	dec := gob.NewDecoder(file)
+		dec := gob.NewDecoder(file)
 
-	var savedPeers []SavedPeer
-	err = dec.Decode(&savedPeers)
-	if err != nil {
-		return err
-	}
+		var savedPeers []SavedPeer
+		err = dec.Decode(&savedPeers)
+		if err != nil {
+			return err
+		}
 
-	for _, savedPeer := range savedPeers {
-		go CreateConnection(savedPeer.IP, true)
-		if !savedPeer.IsRelay && savedPeer.Key != "" {
-			go crypt.AddPublicKeyToMap(savedPeer.Username, savedPeer.Key)
+		for _, savedPeer := range savedPeers {
+			go CreateConnection(savedPeer.IP, true)
+			if !savedPeer.IsRelay && savedPeer.Key != "" {
+				go crypt.AddPublicKeyToMap(savedPeer.Username, savedPeer.Key)
+			}
 		}
 	}
 
