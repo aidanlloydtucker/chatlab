@@ -26,8 +26,6 @@ _testmain.go
 # Custom
 push.sh
 *.key
-config.json
 chatlab
-glade.ui
 .DS_Store
-node_modules/
+out/

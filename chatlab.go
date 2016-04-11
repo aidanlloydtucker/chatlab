@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/billybobjoeaglt/chatlab/chat"
 	"github.com/billybobjoeaglt/chatlab/common"
@@ -20,11 +21,16 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+var (
+	Version   string
+	BuildTime string
+)
+
 func main() {
 	// Defining cli params for app
 	app := cli.NewApp()
 	app.Name = "ChatLab"
-	app.Usage = "A P2P Encrypted Chat App"
+	app.Usage = "A P2P encrypted chat client using keybase.io"
 	app.Authors = []cli.Author{
 		cli.Author{
 			Name: "Aidan Lloyd-Tucker",
@@ -53,7 +59,11 @@ func main() {
 		},
 	}
 	app.UsageText = "chatlab [arguments...]"
-	app.Version = "1.1.0"
+	app.Version = Version
+	num, err := strconv.ParseInt(BuildTime, 10, 64)
+	if err == nil {
+		app.Compiled = time.Unix(num, 0)
+	}
 	app.Action = runApp
 	app.Run(os.Args)
 
